@@ -44,6 +44,14 @@ jobs:
           PY
           fi
 
+      - name: Add thumbnails from the repo's thumbs folder
+        working-directory: .
+        run: |
+          if [ -d thumbs ]; then
+            mkdir -p Effects/shared/assets/effects/thumb
+            cp thumbs/* Effects/shared/assets/effects/thumb/
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

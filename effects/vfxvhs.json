@@ -1,0 +1,57 @@
+{
+  "id": "vfxvhs",
+  "name": "VFX VHS Texture",
+  "category": "stylize",
+  "description": "VHS-style scan and chroma noise. Manual controls only: no autonomous time-based motion; animate exposed parameters with the editor.",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Tape Amount",
+      "type": "float",
+      "default": 0.25,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "tracking",
+      "label": "Tracking",
+      "type": "float",
+      "default": 0.08,
+      "min": 0,
+      "max": 0.5,
+      "step": 0.01
+    },
+    {
+      "id": "chroma",
+      "label": "Chroma Shift",
+      "type": "float",
+      "default": 2,
+      "min": 0,
+      "max": 15,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "phase",
+      "label": "Phase / Offset",
+      "type": "float",
+      "default": 0,
+      "min": -360,
+      "max": 360,
+      "step": 0.1,
+      "unit": "°"
+    },
+    {
+      "id": "effectOpacity",
+      "label": "Effect Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float phase;\nuniform float amount;\nuniform float tracking;\nuniform float chroma;\nhalf4 effectMain(float2 coord){float band=fract(coord.y/size.y+(phase*0.0174532925)*0.04);float wobble=sin(coord.y*0.08+(phase*0.0174532925)*3.0)*tracking*size.x;half4 c=image.eval(float2(coord.x+wobble,coord.y));half4 r=image.eval(coord+float2(chroma,0));half4 b=image.eval(coord-float2(chroma,0));half3 rgb=half3(r.r,c.g,b.b);float scan=0.94+0.06*sin(coord.y*1.7);return half4(mix(c.rgb,rgb,half(amount))*half(scan),c.a);}\nuniform float effectOpacity;\nhalf4 main(float2 coord) {\n    half4 original = image.eval(coord);\n    half4 processed = effectMain(coord);\n    return mix(original, processed, half(clamp(effectOpacity, 0.0, 1.0)));\n}\n"
+}

@@ -1,0 +1,61 @@
+{
+  "id": "vfxsoftflare",
+  "name": "VFX Soft Flare",
+  "category": "stylize",
+  "description": "Soft bloom-like flare spot. Manual controls only: no autonomous time-based motion; animate exposed parameters with the editor.",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Intensity",
+      "type": "float",
+      "default": 0.8,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "centerX",
+      "label": "Center X",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "centerY",
+      "label": "Center Y",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "sizeFlare",
+      "label": "Flare Size",
+      "type": "float",
+      "default": 0.25,
+      "min": 0.01,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "tint",
+      "label": "Tint",
+      "type": "color",
+      "default": "#ffdca0"
+    },
+    {
+      "id": "effectOpacity",
+      "label": "Effect Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float amount;\nuniform float centerX;\nuniform float centerY;\nuniform float sizeFlare;\nlayout(color) uniform half4 tint;\nhalf4 effectMain(float2 coord){half4 c=image.eval(coord);float2 p=coord/size-float2(centerX,centerY);float r=length(p);float spot=exp(-r*r/max(sizeFlare*sizeFlare,0.0001)*8.0);return half4(clamp(c.rgb+tint.rgb*half(spot*amount)*c.a,half3(0),half3(1)),c.a);}\nuniform float effectOpacity;\nhalf4 main(float2 coord) {\n    half4 original = image.eval(coord);\n    half4 processed = effectMain(coord);\n    return mix(original, processed, half(clamp(effectOpacity, 0.0, 1.0)));\n}\n"
+}

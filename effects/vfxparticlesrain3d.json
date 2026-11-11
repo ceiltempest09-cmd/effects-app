@@ -1,0 +1,54 @@
+{
+  "id": "vfxparticlesrain3d",
+  "name": "3D Rain Particles",
+  "category": "stylize",
+  "description": "Perspective rain particle field. Manual controls only: no autonomous time-based motion; animate exposed parameters with the editor.",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Density",
+      "type": "float",
+      "default": 0.45,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "scale",
+      "label": "Particle Scale",
+      "type": "float",
+      "default": 4,
+      "min": 1,
+      "max": 20,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "tint",
+      "label": "Particle Color",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "phase",
+      "label": "Phase / Offset",
+      "type": "float",
+      "default": 0.0,
+      "min": -360,
+      "max": 360,
+      "step": 0.1,
+      "unit": "°"
+    },
+    {
+      "id": "effectOpacity",
+      "label": "Effect Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float phase;\nuniform float amount;\nuniform float scale;\nlayout(color) uniform half4 tint;\nfloat hash(float2 p){return fract(sin(dot(p,float2(127.1,311.7)))*43758.5453);}half4 effectMain(float2 coord){half4 c=image.eval(coord);float2 cell=floor(coord/scale);float n=hash(cell);float y=fract(coord.y/size.y+phase*(0.5+n));float x=fract(coord.x/size.x+n);float d=abs(fract(x*17.0)-0.5);float m=(1.0-smoothstep(0.03,0.08,d))*step(1.0-amount,n);return half4(clamp(c.rgb+tint.rgb*half(m*0.8)*c.a,half3(0),half3(1)),c.a);}\nuniform float effectOpacity;\nhalf4 main(float2 coord) {\n    half4 original = image.eval(coord);\n    half4 processed = effectMain(coord);\n    return mix(original, processed, half(clamp(effectOpacity, 0.0, 1.0)));\n}\n"
+}

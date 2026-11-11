@@ -26,6 +26,17 @@ jobs:
         working-directory: .
         run: unzip -q Effects.zip
 
+      - name: Optimize native code in debug build
+        working-directory: .
+        run: |
+          python3 - <<'PY'
+          p = 'Effects/app/build.gradle.kts'
+          s = open(p).read()
+          s = s.replace("    buildTypes {\n", "    buildTypes {\n        debug {\n            externalNativeBuild { cmake { arguments += \"-DCMAKE_BUILD_TYPE=Release\" } }\n        }\n", 1)
+          open(p, 'w').write(s)
+          PY
+          grep -q CMAKE_BUILD_TYPE Effects/app/build.gradle.kts
+
       - name: Add effects from the repo's effects folder
         working-directory: .
         run: |

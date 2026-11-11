@@ -1,0 +1,45 @@
+{
+  "id": "cccolorbalance",
+  "name": "CC Color Balance",
+  "category": "color",
+  "description": "Independent shadow, midtone and highlight color balance",
+  "params": [
+    {
+      "id": "shadows",
+      "label": "Shadows",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "midtones",
+      "label": "Midtones",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "highlights",
+      "label": "Highlights",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "balance",
+      "label": "Balance",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float shadows;\nuniform float midtones;\nuniform float highlights;\nuniform float balance;\n\nhalf4 main(float2 coord){half4 c=image.eval(coord);half3 s=c.rgb/max(c.a,0.0001);half l=dot(s,half3(0.2126,0.7152,0.0722));\n half sh=1.0-smoothstep(0.0,0.55,l),hi=smoothstep(0.45,1.0,l),mi=1.0-sh-hi;\n s+=half3(shadows*sh+midtones*mi+highlights*hi+balance*0.1);return half4(clamp(s,half3(0),half3(1))*c.a,c.a);}\n"
+}

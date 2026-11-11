@@ -1,0 +1,27 @@
+{
+  "id": "ccfisheye",
+  "name": "CC Fisheye",
+  "category": "distort",
+  "description": "Wide-angle lens distortion",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.35,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ]
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amount;\nuniform float2 center;\nhalf4 main(float2 coord){float2 c=center*size;float2 v=(coord-c)/size;float r2=dot(v,v);float k=1.0+amount*r2*2.0;return image.eval(c+v*size*k);}"
+}

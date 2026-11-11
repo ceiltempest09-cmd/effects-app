@@ -1,0 +1,45 @@
+{
+  "id": "ccchannelmixer",
+  "name": "CC Channel Mixer",
+  "category": "color",
+  "description": "Mix RGB channels independently",
+  "params": [
+    {
+      "id": "redMix",
+      "label": "Red Mix",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "greenMix",
+      "label": "Green Mix",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "blueMix",
+      "label": "Blue Mix",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "cross",
+      "label": "Cross Mix",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float redMix;\nuniform float greenMix;\nuniform float blueMix;\nuniform float cross;\n\nhalf4 main(float2 coord){half4 c=image.eval(coord);half3 s=c.rgb/max(c.a,0.0001);half r=s.r*redMix+s.g*cross;half g=s.g*greenMix+s.b*cross;half b=s.b*blueMix+s.r*cross;return half4(clamp(half3(r,g,b),half3(0),half3(1))*c.a,c.a);}\n"
+}

@@ -1,0 +1,37 @@
+{
+  "id": "cchuesaturation",
+  "name": "CC Hue/Saturation",
+  "category": "color",
+  "description": "AE-style hue rotation, saturation and lightness controls",
+  "params": [
+    {
+      "id": "hue",
+      "label": "Hue",
+      "type": "float",
+      "default": 0,
+      "min": -180,
+      "max": 180,
+      "step": 0.1,
+      "unit": "deg"
+    },
+    {
+      "id": "saturation",
+      "label": "Saturation",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "lightness",
+      "label": "Lightness",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float hue;\nuniform float saturation;\nuniform float lightness;\n\nhalf4 main(float2 coord){half4 c=image.eval(coord);if(c.a<=0.0)return c;half3 rgb=c.rgb/max(c.a,0.0001);\n float angle=hue*0.0174532925; half3x3 m=half3x3(0.299+0.701*cos(angle)+0.168*sin(angle),0.587-0.587*cos(angle)+0.330*sin(angle),0.114-0.114*cos(angle)-0.497*sin(angle),\n 0.299-0.299*cos(angle)-0.328*sin(angle),0.587+0.413*cos(angle)+0.035*sin(angle),0.114-0.114*cos(angle)+0.292*sin(angle),\n 0.299-0.3*cos(angle)+1.25*sin(angle),0.587-0.588*cos(angle)-1.05*sin(angle),0.114+0.886*cos(angle)-0.203*sin(angle));\n rgb=m*rgb; half l=dot(rgb,half3(0.2126,0.7152,0.0722));rgb=mix(half3(l),rgb,half(saturation));rgb+=half3(lightness);return half4(clamp(rgb,half3(0),half3(1))*c.a,c.a);}\n"
+}

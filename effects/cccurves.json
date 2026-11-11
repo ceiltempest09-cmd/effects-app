@@ -1,0 +1,36 @@
+{
+  "id": "cccurves",
+  "name": "CC Contrast Curves",
+  "category": "color",
+  "description": "Adjust contrast using a controllable tonal curve",
+  "params": [
+    {
+      "id": "contrast",
+      "label": "Contrast",
+      "type": "float",
+      "default": 1.2,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "pivot",
+      "label": "Pivot",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "gamma",
+      "label": "Gamma",
+      "type": "float",
+      "default": 1,
+      "min": 0.1,
+      "max": 3,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float contrast;\nuniform float pivot;\nuniform float gamma;\n\nhalf4 main(float2 coord){half4 c=image.eval(coord);half3 s=c.rgb/max(c.a,0.0001);s=(s-half3(pivot))*half(contrast)+half3(pivot);s=pow(max(s,half3(0)),half3(1.0/max(gamma,0.01)));return half4(clamp(s,half3(0),half3(1))*c.a,c.a);}\n"
+}

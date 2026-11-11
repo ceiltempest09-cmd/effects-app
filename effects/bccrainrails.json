@@ -1,0 +1,46 @@
+{
+  "id": "bccrainrails",
+  "name": "BCC Rain Rails",
+  "category": "stylize",
+  "description": "Rain streaks with long vertical trails",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Rain Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "speed",
+      "label": "Speed",
+      "type": "float",
+      "default": 2,
+      "min": 0,
+      "max": 10,
+      "step": 0.01
+    },
+    {
+      "id": "density",
+      "label": "Density",
+      "type": "float",
+      "default": 180,
+      "min": 10,
+      "max": 600,
+      "step": 1
+    },
+    {
+      "id": "slant",
+      "label": "Slant",
+      "type": "float",
+      "default": 8,
+      "min": -30,
+      "max": 30,
+      "step": 0.1,
+      "pixels": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amount;\nuniform float speed;\nuniform float density;\nuniform float slant;\nfloat hash(float2 p){return fract(sin(dot(p,float2(127.1,311.7)))*43758.5453);}half4 main(float2 coord){half4 c=image.eval(coord);float x=floor(coord.x/size.x*density);float y=fract(coord.y/size.y+time*speed+hash(float2(x,1.0)));float rail=abs(fract((coord.x+slant*coord.y)/max(size.x,1.0)*density)-0.5);float m=step(0.48, y)*step(0.47,rail)*amount;return half4(clamp(c.rgb+half(m)*c.a,half3(0),half3(1)),c.a);}"
+}

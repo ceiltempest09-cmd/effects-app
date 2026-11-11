@@ -1,0 +1,47 @@
+{
+  "id": "ccrgbsplit",
+  "name": "CC RGB Split",
+  "category": "distort",
+  "description": "Automatic per-frame RGB channel separation",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Separation",
+      "type": "float",
+      "default": 8,
+      "min": 0,
+      "max": 100,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "angle",
+      "label": "Direction",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1,
+      "unit": "deg"
+    },
+    {
+      "id": "redOffset",
+      "label": "Red Offset",
+      "type": "float",
+      "default": 1,
+      "min": -3,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "blueOffset",
+      "label": "Blue Offset",
+      "type": "float",
+      "default": -1,
+      "min": -3,
+      "max": 3,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amount;\nuniform float angle;\nuniform float redOffset;\nuniform float blueOffset;\nhalf4 main(float2 coord){float a=angle*0.0174532925;float2 d=float2(cos(a),sin(a))*amount;half4 r=image.eval(coord+d*redOffset);half4 g=image.eval(coord);half4 b=image.eval(coord+d*blueOffset);half alpha=g.a;half3 rgb=half3(r.r/max(r.a,0.0001),g.g/max(g.a,0.0001),b.b/max(b.a,0.0001));return half4(clamp(rgb,half3(0),half3(1))*alpha,alpha);}"
+}

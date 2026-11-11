@@ -1,0 +1,39 @@
+{
+  "id": "bccmixedcolor",
+  "name": "BCC Mixed Color",
+  "category": "color",
+  "description": "Mix two colorized tonal ranges",
+  "params": [
+    {
+      "id": "colorA",
+      "label": "Color A",
+      "type": "color",
+      "default": "#1a315f"
+    },
+    {
+      "id": "colorB",
+      "label": "Color B",
+      "type": "color",
+      "default": "#f4a45c"
+    },
+    {
+      "id": "mixPoint",
+      "label": "Mix Point",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.7,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 colorA;\nlayout(color) uniform half4 colorB;\nuniform float mixPoint;\nuniform float amount;\nhalf4 main(float2 coord){half4 c=image.eval(coord);half3 s=c.rgb/max(c.a,0.0001);half l=dot(s,half3(0.2126,0.7152,0.0722));half3 mapped=mix(colorA.rgb,colorB.rgb,smoothstep(0.0,1.0,clamp(l+half(mixPoint-0.5),0.0,1.0)));return half4(mix(s,mapped,half(amount))*c.a,c.a);}"
+}

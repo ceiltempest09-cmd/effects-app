@@ -42,7 +42,7 @@
       "step": 1.0
     },
     {
-      "id": "mix",
+      "id": "blend",
       "label": "Mix",
       "type": "float",
       "default": 1.0,
@@ -52,5 +52,5 @@
       "percent": true
     }
   ],
-  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float strength;\nuniform float radius;\nuniform float speed;\nuniform float direction;\nuniform float mix;\nhalf4 main(float2 coord) {\n    half4 base = image.eval(coord);\n    if (base.a <= 0.0) return base;\n    float angle = radians(direction);\n    float2 axis = float2(cos(angle), sin(angle));\n    float phase = time * speed;\n    float wave = sin(phase + coord.y * 0.025) * 0.35 + cos(phase * 0.7 + coord.x * 0.018) * 0.25;\n    float displacement = radius * strength * (0.5 + abs(wave));\n    float2 offset = axis * displacement;\n    half4 redSample = image.eval(clamp(coord + offset, float2(0.0), size));\n    half4 blueSample = image.eval(clamp(coord - offset, float2(0.0), size));\n    half4 greenSample = image.eval(clamp(coord + axis * (wave * radius * strength * 0.35), float2(0.0), size));\n    half3 warped = half3(redSample.r, greenSample.g, blueSample.b);\n    half3 original = base.rgb / max(base.a, 0.0001);\n    half3 separated = warped / max(base.a, 0.0001);\n    half3 result = mix(original, separated, half(mix));\n    return half4(clamp(result, half3(0.0), half3(1.0)) * base.a, base.a);\n}\n"
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float strength;\nuniform float radius;\nuniform float speed;\nuniform float direction;\nuniform float blend;\nhalf4 main(float2 coord) {\n    half4 base = image.eval(coord);\n    if (base.a <= 0.0) return base;\n    float angle = radians(direction);\n    float2 axis = float2(cos(angle), sin(angle));\n    float phase = time * speed;\n    float wave = sin(phase + coord.y * 0.025) * 0.35 + cos(phase * 0.7 + coord.x * 0.018) * 0.25;\n    float displacement = radius * strength * (0.5 + abs(wave));\n    float2 offset = axis * displacement;\n    half4 redSample = image.eval(clamp(coord + offset, float2(0.0), size));\n    half4 blueSample = image.eval(clamp(coord - offset, float2(0.0), size));\n    half4 greenSample = image.eval(clamp(coord + axis * (wave * radius * strength * 0.35), float2(0.0), size));\n    half3 warped = half3(redSample.r, greenSample.g, blueSample.b);\n    half3 original = base.rgb / max(base.a, 0.0001);\n    half3 separated = warped / max(base.a, 0.0001);\n    half3 result = mix(original, separated, half(blend));\n    return half4(clamp(result, half3(0.0), half3(1.0)) * base.a, base.a);\n}\n"
 }

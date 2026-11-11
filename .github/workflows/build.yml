@@ -22,6 +22,24 @@ jobs:
         working-directory: .
         run: unzip -q Effects.zip
 
+      - name: Add effects from the repo's effects folder
+        working-directory: .
+        run: |
+          if [ -d effects ]; then
+            python3 - <<'PY'
+          import json, glob, shutil
+          dst = 'Effects/shared/assets/effects'
+          idx = json.load(open(dst + '/index.json'))
+          for f in sorted(glob.glob('effects/*.json')):
+              d = json.load(open(f))
+              shutil.copy(f, dst)
+              if d['id'] not in idx:
+                  idx.append(d['id'])
+              print('added', d['id'])
+          json.dump(idx, open(dst + '/index.json', 'w'), indent=1)
+          PY
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

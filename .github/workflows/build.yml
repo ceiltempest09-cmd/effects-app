@@ -5,6 +5,10 @@ on:
   push:
     branches: [main, master]
 
+concurrency:
+  group: build
+  cancel-in-progress: true
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -59,6 +63,7 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "cmake;3.31.6" "ndk;30.0.16248370"
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      # whisper.cpp and ncnn are not part of the source zip; fetch the pinned versions.
       - name: Fetch whisper.cpp and ncnn
         run: |
           [ -f third_party/whisper.cpp/CMakeLists.txt ] || { rm -rf third_party/whisper.cpp; git clone --depth 1 --branch v1.9.5 https://github.com/ggml-org/whisper.cpp third_party/whisper.cpp; }
@@ -71,11 +76,19 @@ jobs:
           path: Effects/third_party/skia
           key: skia-arm64-${{ hashFiles('Effects/tools/build_skia.sh', 'Effects/tools/skia-args.gn', 'Effects/tools/skia-patches/**') }}
 
-      - name: Build Skia (first run only)
+      - name: Build Skia (first run only, about 1 to 2 hours)
         if: steps.skia.outputs.cache-hit != 'true'
         run: |
           tools/build_skia.sh
           rm -rf third_party/skia/out/android-arm64/obj
+
+      - name: Use the fixed signing key
+        working-directory: .
+        run: |
+          if [ -f debug.keystore ]; then
+            mkdir -p ~/.android
+            cp debug.keystore ~/.android/debug.keystore
+          fi
 
       - name: Build the APK
         run: |
@@ -95,3 +108,4 @@ jobs:
             Effects/app/build/reports
             Effects/app/.cxx/**/*.txt
             Effects/app/.cxx/**/*.log
+            

@@ -1,0 +1,79 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Effects
+    timeout-minutes: 240
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/../android-sdk
+      ANDROID_NDK: ${{ github.workspace }}/../android-sdk/ndk/30.0.16248370
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unpack Effects.zip
+        working-directory: .
+        run: unzip -q Effects.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build clang lld python3 git curl unzip
+
+      - name: Install the Android SDK, NDK and CMake
+        run: |
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          echo '2d2d50857e4eb553af5a6dc3ad507a17adf43d115264b1afc116f95c92e5e258  /tmp/cmdline-tools.zip' | sha256sum -c -
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools
+          mv /tmp/cmdline-tools/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "cmake;3.31.6" "ndk;30.0.16248370"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Fetch whisper.cpp and ncnn
+        run: |
+          [ -f third_party/whisper.cpp/CMakeLists.txt ] || { rm -rf third_party/whisper.cpp; git clone --depth 1 --branch v1.9.5 https://github.com/ggml-org/whisper.cpp third_party/whisper.cpp; }
+          [ -f third_party/ncnn/CMakeLists.txt ] || { rm -rf third_party/ncnn; git clone --depth 1 --branch 20261020 --recurse-submodules --shallow-submodules https://github.com/Tencent/ncnn third_party/ncnn; }
+
+      - name: Restore Skia
+        id: skia
+        uses: actions/cache@v4
+        with:
+          path: Effects/third_party/skia
+          key: skia-arm64-${{ hashFiles('Effects/tools/build_skia.sh', 'Effects/tools/skia-args.gn', 'Effects/tools/skia-patches/**') }}
+
+      - name: Build Skia (first run only)
+        if: steps.skia.outputs.cache-hit != 'true'
+        run: |
+          tools/build_skia.sh
+          rm -rf third_party/skia/out/android-arm64/obj
+
+      - name: Build the APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Effects-debug-apk
+          path: Effects/app/build/outputs/apk/foss/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: |
+            Effects/app/build/reports
+            Effects/app/.cxx/**/*.txt
+            Effects/app/.cxx/**/*.log

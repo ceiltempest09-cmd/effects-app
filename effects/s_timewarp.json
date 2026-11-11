@@ -1,0 +1,94 @@
+
+{
+  "id": "em_s_timewarp",
+  "name": "EM S_TimeWarp",
+  "category": "Time",
+  "description": "Advanced spatial time-warp distortion with manually keyframable phase, radial displacement, directional warping, and turbulence.",
+  "params": [
+    {
+      "name": "Amount",
+      "type": "float",
+      "default": 30.0,
+      "min": 0.0,
+      "max": 200.0
+    },
+    {
+      "name": "Horizontal",
+      "type": "float",
+      "default": 1.0,
+      "min": -5.0,
+      "max": 5.0
+    },
+    {
+      "name": "Vertical",
+      "type": "float",
+      "default": 1.0,
+      "min": -5.0,
+      "max": 5.0
+    },
+    {
+      "name": "Frequency",
+      "type": "float",
+      "default": 10.0,
+      "min": 0.1,
+      "max": 100.0
+    },
+    {
+      "name": "Phase",
+      "type": "float",
+      "default": 0.0,
+      "min": -360.0,
+      "max": 360.0
+    },
+    {
+      "name": "Center X",
+      "type": "float",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "Center Y",
+      "type": "float",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "Radial",
+      "type": "float",
+      "default": 1.0,
+      "min": -5.0,
+      "max": 5.0
+    },
+    {
+      "name": "Stretch",
+      "type": "float",
+      "default": 0.0,
+      "min": -100.0,
+      "max": 100.0
+    },
+    {
+      "name": "Turbulence",
+      "type": "float",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 100.0
+    },
+    {
+      "name": "Edge Mode",
+      "type": "float",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "Effect Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float amount;\nuniform float horizontal;\nuniform float vertical;\nuniform float frequency;\nuniform float phase;\nuniform float centerX;\nuniform float centerY;\nuniform float radial;\nuniform float stretch;\nuniform float turbulence;\nuniform float edgeMode;\nuniform float effectOpacity;\n\nfloat2 safeCoord(float2 p) {\n    if (edgeMode < 0.5) {\n        return clamp(p, float2(0.0), size);\n    }\n    if (edgeMode < 1.5) {\n        return abs(mod(p, size * 2.0) - size);\n    }\n    return p;\n}\n\nhalf4 main(float2 coord) {\n    float2 center = float2(centerX, centerY) * size;\n    float2 p = coord - center;\n    float distanceFromCenter = length(p);\n    float phaseRad = phase * 0.0174532925;\n    float wave = sin(distanceFromCenter * frequency * 0.01 + phaseRad);\n    float radialWave = radial * wave * amount;\n    float horizontalWave = sin(p.y * frequency * 0.01 + phaseRad) * horizontal * amount;\n    float verticalWave = cos(p.x * frequency * 0.01 + phaseRad) * vertical * amount;\n    float turbulenceX = sin(p.y * 0.035 + phaseRad * 2.0) * turbulence * amount * 0.01;\n    float turbulenceY = cos(p.x * 0.035 + phaseRad * 2.0) * turbulence * amount * 0.01;\n    float2 direction = normalize(p + float2(0.0001));\n    float2 displacement = direction * radialWave + float2(horizontalWave, verticalWave) + float2(turbulenceX, turbulenceY);\n    float2 warped = coord + displacement;\n    warped.x += (warped.x - center.x) * stretch * 0.01;\n    half4 original = image.eval(coord);\n    half4 processed = image.eval(safeCoord(warped));\n    return mix(original, processed, half(clamp(effectOpacity, 0.0, 1.0)));\n}"
+}

@@ -1,0 +1,106 @@
+{
+  "id": "magnifylens",
+  "name": "Magnify Lens",
+  "category": "distort",
+  "description": "A magnifying glass with circle or square shape, lens curvature, rim colour and drop shadow.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Lens Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 160,
+      "min": 20,
+      "max": 800,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "magnification",
+      "label": "Magnification",
+      "type": "float",
+      "default": 2,
+      "min": 1,
+      "max": 8,
+      "step": 0.01
+    },
+    {
+      "id": "distortion",
+      "label": "Lens Curvature",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "softEdge",
+      "label": "Soft Edge",
+      "type": "float",
+      "default": 0.05,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "border",
+      "label": "Rim Width",
+      "type": "float",
+      "default": 2,
+      "min": 0,
+      "max": 20,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "borderColor",
+      "label": "Rim Color",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "shadow",
+      "label": "Shadow",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "shape",
+      "label": "Shape",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Circle",
+        "Square"
+      ]
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float radius;\nuniform float magnification;\nuniform float distortion;\nuniform float softEdge;\nuniform float border;\nlayout(color) uniform half4 borderColor;\nuniform float shadow;\nuniform float shape;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 d = coord - ctr;\n    float dist = shape < 0.5 ? length(d) : max(abs(d.x), abs(d.y));\n    float inside = 1.0 - smoothstep(radius * (1.0 - softEdge), radius, dist);\n    float q = saturate(dist / radius);\n    float mag = mix(magnification, 1.0, pow(q, 1.0 + distortion * 3.0));\n    float4 lens = tex(ctr + d / mag);\n    float ring = smoothstep(radius - border - 1.0, radius - border, dist) * (1.0 - smoothstep(radius - 1.0, radius, dist));\n    lens = float4(mix(lens.rgb, float3(borderColor.rgb) * lens.a, ring), lens.a);\n    float sh = (1.0 - smoothstep(radius, radius * 1.25 + 1.0, dist)) * (1.0 - inside) * shadow;\n    float4 base = float4(c.rgb * (1.0 - sh), c.a);\n    return fin(c, mix(base, lens, inside), opacity);\n}\n"
+}

@@ -1,0 +1,77 @@
+{
+  "id": "defringeedges",
+  "name": "Defringe Edges",
+  "category": "key",
+  "description": "Removes dark or bright halos around cut out edges by pulling colour from the solid interior.",
+  "params": [
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 3,
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "edgeLow",
+      "label": "Edge Low",
+      "type": "float",
+      "default": 0.05,
+      "min": 0,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "edgeHigh",
+      "label": "Edge High",
+      "type": "float",
+      "default": 0.95,
+      "min": 0.5,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Fill from Interior",
+        "Desaturate Edge"
+      ]
+    },
+    {
+      "id": "darken",
+      "label": "Darken Edge",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float radius;\nuniform float amount;\nuniform float edgeLow;\nuniform float edgeHigh;\nuniform float method;\nuniform float darken;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 sum = float3(0.0);\n    float ws = 0.0;\n    for (int k = 0; k < 2; k++) {\n        float rr = radius * (float(k) + 1.0) / 2.0;\n        for (int i = 0; i < 8; i++) {\n            float a = float(i) * 0.7853982;\n            float4 s4 = tex(coord + float2(cos(a), sin(a)) * rr);\n            float w = pow(s4.a, 4.0);\n            sum += unp(s4) * w;\n            ws += w;\n        }\n    }\n    float3 inner = ws > 0.0001 ? sum / ws : s;\n    float edge = smoothstep(0.0, edgeLow + 0.001, c.a) * (1.0 - smoothstep(edgeHigh - 0.2, edgeHigh, c.a));\n    float3 o = method < 0.5 ? mix(s, inner, edge * amount) : mix(s, float3(luma(s)), edge * amount);\n    o *= 1.0 - darken * edge * amount;\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

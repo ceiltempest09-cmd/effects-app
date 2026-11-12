@@ -1,0 +1,93 @@
+{
+  "id": "blockcorruption",
+  "name": "Digital Block Corruption",
+  "category": "noise",
+  "description": "Random corrupted blocks: colour blocks, shifted blocks or inverted blocks with rate and seed.",
+  "params": [
+    {
+      "id": "blockSize",
+      "label": "Block Size",
+      "type": "float",
+      "default": 32,
+      "min": 4,
+      "max": 200,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "aspect",
+      "label": "Block Aspect",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Color Blocks",
+        "Shifted Blocks",
+        "Inverted Blocks"
+      ]
+    },
+    {
+      "id": "shiftPx",
+      "label": "Shift",
+      "type": "float",
+      "default": 80,
+      "min": 0,
+      "max": 400,
+      "step": 1,
+      "pixels": true,
+      "when": {
+        "mode": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "rate",
+      "label": "Update Rate",
+      "type": "float",
+      "default": 12,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "fps"
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float blockSize;\nuniform float aspect;\nuniform float amount;\nuniform float mode;\nuniform float shiftPx;\nuniform float rate;\nuniform float seed;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat2 hash22(float2 p) {\n    return float2(hash21(p), hash21(p + float2(17.31, 5.17)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float t = floor(time * rate);\n    float2 cell = floor(coord / float2(blockSize * aspect, blockSize));\n    float hit = step(1.0 - amount, hash21(cell + float2(seed, t)));\n    float2 r = hash22(cell + t * 7.0 + seed);\n    float3 o = s;\n    if (mode < 0.5) {\n        o = mix(s, float3(hash21(cell + t), hash21(cell + t + 3.0), hash21(cell + t + 6.0)), hit);\n    } else if (mode < 1.5) {\n        o = unp(tex(coord + float2((r.x - 0.5) * 2.0 * shiftPx * hit, (r.y - 0.5) * shiftPx * 0.2 * hit)));\n    } else {\n        o = mix(s, 1.0 - s, hit);\n    }\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

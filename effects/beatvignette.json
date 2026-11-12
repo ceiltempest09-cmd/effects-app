@@ -1,0 +1,120 @@
+{
+  "id": "beatvignette",
+  "name": "Beat Vignette Pulse",
+  "category": "beat",
+  "description": "Vignette that breathes with the beat, with radius, feather, colour and inverse pulse.",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "feather",
+      "label": "Feather",
+      "type": "float",
+      "default": 0.5,
+      "min": 0.01,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "vigColor",
+      "label": "Color",
+      "type": "color",
+      "default": "#000000"
+    },
+    {
+      "id": "curve",
+      "label": "Pulse Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.3,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "invertPulse",
+      "label": "Invert Pulse",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "decay",
+      "label": "Decay",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 2,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "beats",
+      "label": "Beats",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Every Beat",
+        "Every 2nd Beat",
+        "Every 4th Beat"
+      ]
+    },
+    {
+      "id": "offset",
+      "label": "Beat Offset",
+      "type": "float",
+      "default": 0,
+      "min": -5,
+      "max": 5,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "bpm",
+      "label": "BPM",
+      "type": "float",
+      "default": 120,
+      "min": 30,
+      "max": 240,
+      "step": 1
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float beat;\nuniform float amount;\nuniform float radius;\nuniform float feather;\nlayout(color) uniform half4 vigColor;\nuniform float curve;\nuniform float invertPulse;\nuniform float2 center;\nuniform float opacity;\nuniform float decay;\nuniform float beats;\nuniform float offset;\nuniform float bpm;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float e = pow(saturate(beat), curve);\n    float3 s = unp(c);\n    float2 p = (coord / size - center) * float2(size.x / size.y, 1.0) * 2.0;\n    float pulse = invertPulse > 0.5 ? 1.0 - e : e;\n    float v = smoothstep(radius + (1.0 - pulse) * 0.3, radius + (1.0 - pulse) * 0.3 + feather, length(p));\n    float3 o = mix(s, float3(vigColor.rgb), v * amount * (0.4 + 0.6 * pulse));\n    return fin(c, float4(o * c.a, c.a), opacity);\n}\n"
+}

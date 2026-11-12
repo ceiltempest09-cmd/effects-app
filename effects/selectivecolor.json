@@ -1,0 +1,92 @@
+{
+  "id": "selectivecolor",
+  "name": "Selective Color",
+  "category": "color",
+  "description": "Targets one hue range and shifts its hue, saturation and lightness without touching the rest.",
+  "params": [
+    {
+      "id": "targetHue",
+      "label": "Target Hue",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "range",
+      "label": "Range",
+      "type": "float",
+      "default": 40,
+      "min": 5,
+      "max": 180,
+      "step": 1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "softness",
+      "label": "Softness",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "minSat",
+      "label": "Ignore Greys",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "hueShift",
+      "label": "Hue Shift",
+      "type": "float",
+      "default": 0,
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "saturation",
+      "label": "Saturation",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "lightness",
+      "label": "Lightness",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "showMatte",
+      "label": "Show Matte",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float targetHue;\nuniform float range;\nuniform float softness;\nuniform float minSat;\nuniform float hueShift;\nuniform float saturation;\nuniform float lightness;\nuniform float showMatte;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 rgb2hsv(float3 c) {\n    float4 K = float4(0.0, -0.3333333, 0.6666667, -1.0);\n    float4 p = mix(float4(c.b, c.g, K.w, K.z), float4(c.g, c.b, K.x, K.y), step(c.b, c.g));\n    float4 q = mix(float4(p.x, p.y, p.w, c.r), float4(c.r, p.y, p.z, p.x), step(p.x, c.r));\n    float d = q.x - min(q.w, q.y);\n    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + 0.0000001)), d / (q.x + 0.0000001), q.x);\n}\nfloat3 hsv2rgb(float3 c) {\n    float3 p = abs(fract(float3(c.x) + float3(1.0, 0.6666667, 0.3333333)) * 6.0 - 3.0);\n    return c.z * mix(float3(1.0), saturate(p - 1.0), c.y);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 h = rgb2hsv(s);\n    float d = abs(fract(h.x - targetHue / 360.0 + 0.5) - 0.5) * 360.0;\n    float w = 1.0 - smoothstep(range * (1.0 - softness), range + 0.001, d);\n    w *= smoothstep(0.0, minSat + 0.001, h.y);\n    float3 hh = h;\n    hh.x = fract(h.x + hueShift * w / 360.0 + 1.0);\n    hh.y = saturate(h.y * (1.0 + saturation * w));\n    float3 o = hsv2rgb(hh);\n    o = lightness >= 0.0 ? mix(o, float3(1.0), lightness * w) : o * (1.0 + lightness * w);\n    if (showMatte > 0.5) o = float3(w);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

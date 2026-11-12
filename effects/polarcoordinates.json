@@ -1,0 +1,69 @@
+{
+  "id": "polarcoordinates",
+  "name": "Polar Coordinates",
+  "category": "distort",
+  "description": "Converts between rectangular and polar space with interpolation, rotation and radius scale.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "kind",
+      "label": "Conversion",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Rect to Polar",
+        "Polar to Rect"
+      ]
+    },
+    {
+      "id": "interp",
+      "label": "Interpolation",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "rotation",
+      "label": "Rotation",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "radiusScale",
+      "label": "Radius Scale",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float kind;\nuniform float interp;\nuniform float rotation;\nuniform float radiusScale;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float maxR = length(size) * 0.5;\n    float2 d = coord - ctr;\n    float a = atan(d.y, d.x) + radians(rotation);\n    float2 src = float2((a / 6.2831853 + 0.5) * size.x, length(d) / maxR * size.y * radiusScale);\n    if (kind > 0.5) {\n        float pa = coord.x / size.x * 6.2831853 - 3.1415927 + radians(rotation);\n        float pr = coord.y / size.y * maxR * radiusScale;\n        src = ctr + float2(cos(pa), sin(pa)) * pr;\n    }\n    return fin(c, tex(mix(coord, src, interp)), opacity);\n}\n"
+}

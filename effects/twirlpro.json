@@ -1,0 +1,80 @@
+{
+  "id": "twirlpro",
+  "name": "Twirl Pro",
+  "category": "distort",
+  "description": "Twists the image around a centre with falloff curve, inner zoom and animated spin.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center Position",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "twist",
+      "label": "Twist Angle",
+      "type": "float",
+      "default": 120,
+      "min": -720,
+      "max": 720,
+      "step": 1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 0.5,
+      "min": 0.02,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "falloff",
+      "label": "Falloff",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Smooth",
+        "Linear",
+        "Hard"
+      ]
+    },
+    {
+      "id": "zoom",
+      "label": "Inner Zoom",
+      "type": "float",
+      "default": 1,
+      "min": 0.5,
+      "max": 2.5,
+      "step": 0.01
+    },
+    {
+      "id": "spin",
+      "label": "Spin Speed",
+      "type": "float",
+      "default": 0,
+      "min": -360,
+      "max": 360,
+      "step": 1,
+      "unit": "\u00b0/s"
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float twist;\nuniform float radius;\nuniform float falloff;\nuniform float zoom;\nuniform float spin;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 d = coord - ctr;\n    float rr = radius * length(size) * 0.5;\n    float t = saturate(1.0 - length(d) / rr);\n    t = falloff < 0.5 ? t * t * (3.0 - 2.0 * t) : (falloff < 1.5 ? t : step(0.0001, t));\n    float a = (radians(twist) + radians(spin) * time) * t;\n    float2 p = rot2(d, a) / mix(1.0, zoom, t);\n    return fin(c, tex(ctr + p), opacity);\n}\n"
+}

@@ -1,0 +1,79 @@
+{
+  "id": "colorreplace",
+  "name": "Color Replace",
+  "category": "color",
+  "description": "Replaces one colour with another using RGB distance or hue matching, with tolerance, softness and a matte view.",
+  "params": [
+    {
+      "id": "sourceColor",
+      "label": "Source Color",
+      "type": "color",
+      "default": "#ff2a2a"
+    },
+    {
+      "id": "targetColor",
+      "label": "Target Color",
+      "type": "color",
+      "default": "#2a8cff"
+    },
+    {
+      "id": "matchMode",
+      "label": "Match",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "RGB Distance",
+        "Hue Only"
+      ]
+    },
+    {
+      "id": "tolerance",
+      "label": "Tolerance",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "softness",
+      "label": "Softness",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "keepLuma",
+      "label": "Keep Luminance",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "invertMatch",
+      "label": "Invert Match",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "showMatte",
+      "label": "Show Matte",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 sourceColor;\nlayout(color) uniform half4 targetColor;\nuniform float matchMode;\nuniform float tolerance;\nuniform float softness;\nuniform float keepLuma;\nuniform float invertMatch;\nuniform float showMatte;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 rgb2hsv(float3 c) {\n    float4 K = float4(0.0, -0.3333333, 0.6666667, -1.0);\n    float4 p = mix(float4(c.b, c.g, K.w, K.z), float4(c.g, c.b, K.x, K.y), step(c.b, c.g));\n    float4 q = mix(float4(p.x, p.y, p.w, c.r), float4(c.r, p.y, p.z, p.x), step(p.x, c.r));\n    float d = q.x - min(q.w, q.y);\n    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + 0.0000001)), d / (q.x + 0.0000001), q.x);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 sc = float3(sourceColor.rgb);\n    float3 tc = float3(targetColor.rgb);\n    float d = 0.0;\n    if (matchMode < 0.5) {\n        d = distance(s, sc) / 1.7320508;\n    } else {\n        float3 a = rgb2hsv(s);\n        float3 b = rgb2hsv(sc);\n        d = abs(fract(a.x - b.x + 0.5) - 0.5) * 2.0;\n        d = mix(1.0, d, smoothstep(0.02, 0.2, a.y));\n    }\n    float w = 1.0 - smoothstep(tolerance * (1.0 - softness), tolerance + 0.0001, d);\n    if (invertMatch > 0.5) w = 1.0 - w;\n    float3 t = tc;\n    if (keepLuma > 0.5) t = tc * (luma(s) / max(luma(sc), 0.1));\n    float3 o = mix(s, t, w);\n    if (showMatte > 0.5) o = float3(w);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

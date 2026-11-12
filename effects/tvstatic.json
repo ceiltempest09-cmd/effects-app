@@ -1,0 +1,96 @@
+{
+  "id": "tvstatic",
+  "name": "TV Static",
+  "category": "noise",
+  "description": "Analog TV static with colour noise, tearing bands, brightness and blend mode.",
+  "params": [
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "noiseSize",
+      "label": "Noise Size",
+      "type": "float",
+      "default": 2,
+      "min": 1,
+      "max": 10,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "rate",
+      "label": "Update Rate",
+      "type": "float",
+      "default": 30,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "fps"
+    },
+    {
+      "id": "colorNoise",
+      "label": "Color Noise",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "tear",
+      "label": "Tearing",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "bandHeight",
+      "label": "Band Height",
+      "type": "float",
+      "default": 60,
+      "min": 10,
+      "max": 200,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "brightness",
+      "label": "Brightness",
+      "type": "float",
+      "default": 0,
+      "min": -0.5,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "blend",
+      "label": "Blend Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amount;\nuniform float noiseSize;\nuniform float rate;\nuniform float colorNoise;\nuniform float tear;\nuniform float bandHeight;\nuniform float brightness;\nuniform float blend;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float t = floor(time * rate);\n    float band = hash21(float2(floor(coord.y / max(bandHeight, 1.0)), t));\n    float shift = (band - 0.5) * tear * size.x * 0.15 * step(0.7, band);\n    float4 c = tex(coord + float2(shift, 0.0));\n    float3 s = unp(c);\n    float2 p = floor(coord / max(noiseSize, 1.0)) + t * 31.7;\n    float n = hash21(p);\n    float3 cn = float3(hash21(p + 1.1), hash21(p + 2.3), hash21(p + 3.7));\n    float3 layer = saturate(mix(float3(n), cn, colorNoise) + brightness);\n    float3 o = mix(s, blendm(s, layer, blend), amount);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), 1.0);\n}\n"
+}

@@ -1,0 +1,73 @@
+{
+  "id": "gradientblur",
+  "name": "Gradient Blur",
+  "category": "blur",
+  "description": "Blur that fades in along a line with start, end, curve and direction control.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Blur",
+      "type": "float",
+      "default": 30,
+      "min": 0,
+      "max": 120,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 90,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "start",
+      "label": "Start",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "end",
+      "label": "End",
+      "type": "float",
+      "default": 0.8,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "curve",
+      "label": "Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "reverse",
+      "label": "Reverse",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float angle;\nuniform float start;\nuniform float end;\nuniform float curve;\nuniform float reverse;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 b = float4(blurred.eval(coord));\n    float a = radians(angle);\n    float p = dot(coord / size - float2(0.5), float2(cos(a), sin(a))) + 0.5;\n    float k = pow(saturate((p - start) / max(end - start, 0.001)), curve);\n    if (reverse > 0.5) k = 1.0 - k;\n    return fin(c, mix(c, b, k), opacity);\n}\n"
+}

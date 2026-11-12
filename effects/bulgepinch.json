@@ -1,0 +1,77 @@
+{
+  "id": "bulgepinch",
+  "name": "Bulge & Pinch",
+  "category": "distort",
+  "description": "Magnifies or pinches an elliptical area with adjustable size, aspect and edge feather.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center Position",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": -1,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 0.4,
+      "min": 0.02,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "aspect",
+      "label": "Aspect",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "feather",
+      "label": "Edge Feather",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "bias",
+      "label": "Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float amount;\nuniform float radius;\nuniform float aspect;\nuniform float feather;\nuniform float bias;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 e = float2(aspect, 1.0) * radius * length(size) * 0.5;\n    float2 q = (coord - ctr) / e;\n    float r = length(q);\n    float p = 1.0 + amount * 1.5 * bias;\n    float rp = pow(max(r, 0.0001), p);\n    float inside = 1.0 - smoothstep(1.0 - feather, 1.0, r);\n    float nr = mix(r, rp, inside);\n    float2 q2 = q / max(r, 0.0001) * nr;\n    return fin(c, tex(ctr + q2 * e), opacity);\n}\n"
+}

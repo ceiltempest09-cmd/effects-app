@@ -1,0 +1,59 @@
+{
+  "id": "gaussianblurpro",
+  "name": "Gaussian Blur Pro",
+  "category": "blur",
+  "description": "Smooth gaussian blur with separate control over colour and alpha, gain and amount.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Radius",
+      "type": "float",
+      "default": 20,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "mode",
+      "label": "Blur",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Color and Alpha",
+        "Alpha Only",
+        "Color Only"
+      ]
+    },
+    {
+      "id": "gain",
+      "label": "Gain",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float mode;\nuniform float gain;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 b = float4(blurred.eval(coord));\n    float4 r = b;\n    if (mode > 0.5 && mode < 1.5) r = float4(c.rgb * (b.a / max(c.a, 0.0001)), b.a);\n    else if (mode > 1.5) r = float4(unp(b) * c.a, c.a);\n    r = float4(r.rgb * gain, r.a);\n    return fin(c, mix(c, r, amount), opacity);\n}\n"
+}

@@ -1,0 +1,98 @@
+{
+  "id": "shapematte",
+  "name": "Shape Matte",
+  "category": "key",
+  "description": "Cuts the layer with an ellipse, rectangle or rounded rectangle matte with feather, rotation and invert.",
+  "params": [
+    {
+      "id": "shape",
+      "label": "Shape",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Ellipse",
+        "Rectangle",
+        "Rounded Rectangle"
+      ]
+    },
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "sizeX",
+      "label": "Width",
+      "type": "float",
+      "default": 0.6,
+      "min": 0.01,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "sizeY",
+      "label": "Height",
+      "type": "float",
+      "default": 0.6,
+      "min": 0.01,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "cornerRadius",
+      "label": "Corner Radius",
+      "type": "float",
+      "default": 0.25,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "when": {
+        "shape": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "rotation",
+      "label": "Rotation",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "feather",
+      "label": "Feather",
+      "type": "float",
+      "default": 0.2,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "invert",
+      "label": "Invert",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float shape;\nuniform float2 center;\nuniform float sizeX;\nuniform float sizeY;\nuniform float cornerRadius;\nuniform float rotation;\nuniform float feather;\nuniform float invert;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 p = rot2(coord - ctr, -radians(rotation)) / (size * float2(sizeX, sizeY) * 0.5);\n    float sd = length(p) - 1.0;\n    if (shape > 0.5 && shape < 1.5) {\n        sd = max(abs(p.x), abs(p.y)) - 1.0;\n    } else if (shape > 1.5) {\n        float rr = min(cornerRadius, 1.0);\n        float2 q = abs(p) - float2(1.0 - rr);\n        sd = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - rr;\n    }\n    float m = 1.0 - smoothstep(-feather - 0.0001, 0.0, sd);\n    if (invert > 0.5) m = 1.0 - m;\n    return fin(c, c * m, opacity);\n}\n"
+}

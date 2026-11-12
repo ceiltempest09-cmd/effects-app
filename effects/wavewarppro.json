@@ -1,0 +1,96 @@
+{
+  "id": "wavewarppro",
+  "name": "Wave Warp Pro",
+  "category": "distort",
+  "description": "Two axis wave warp with sine, triangle or square-ish waves, edge pinning, phase and speed.",
+  "params": [
+    {
+      "id": "amplitudeX",
+      "label": "Horizontal Amplitude",
+      "type": "float",
+      "default": 20,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "amplitudeY",
+      "label": "Vertical Amplitude",
+      "type": "float",
+      "default": 20,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "frequencyX",
+      "label": "Horizontal Frequency",
+      "type": "float",
+      "default": 3,
+      "min": 0,
+      "max": 30,
+      "step": 0.01
+    },
+    {
+      "id": "frequencyY",
+      "label": "Vertical Frequency",
+      "type": "float",
+      "default": 3,
+      "min": 0,
+      "max": 30,
+      "step": 0.01
+    },
+    {
+      "id": "speed",
+      "label": "Speed",
+      "type": "float",
+      "default": 1,
+      "min": -10,
+      "max": 10,
+      "step": 0.01
+    },
+    {
+      "id": "phase",
+      "label": "Phase",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "shape",
+      "label": "Wave Shape",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Sine",
+        "Triangle",
+        "Square-ish"
+      ]
+    },
+    {
+      "id": "pin",
+      "label": "Pin Edges",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amplitudeX;\nuniform float amplitudeY;\nuniform float frequencyX;\nuniform float frequencyY;\nuniform float speed;\nuniform float phase;\nuniform float shape;\nuniform float pin;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 uv = coord / size;\n    float ax = uv.x * frequencyX * 6.2831853 + time * speed + radians(phase);\n    float ay = uv.y * frequencyY * 6.2831853 + time * speed * 1.13 + radians(phase);\n    float wx = sin(ax);\n    float wy = sin(ay);\n    if (shape > 0.5 && shape < 1.5) {\n        wx = abs(fract(ax / 6.2831853) * 2.0 - 1.0) * 2.0 - 1.0;\n        wy = abs(fract(ay / 6.2831853) * 2.0 - 1.0) * 2.0 - 1.0;\n    } else if (shape > 1.5) {\n        wx = clamp(sin(ax) * 3.0, -1.0, 1.0);\n        wy = clamp(sin(ay) * 3.0, -1.0, 1.0);\n    }\n    float pinX = smoothstep(0.0, 0.2, uv.x) * (1.0 - smoothstep(0.8, 1.0, uv.x));\n    float pinY = smoothstep(0.0, 0.2, uv.y) * (1.0 - smoothstep(0.8, 1.0, uv.y));\n    float k = mix(1.0, pinX * pinY, pin);\n    float4 r = tex(coord + float2(wy * amplitudeX, wx * amplitudeY) * k);\n    return fin(c, r, opacity);\n}\n"
+}

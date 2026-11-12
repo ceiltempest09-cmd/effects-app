@@ -1,0 +1,68 @@
+{
+  "id": "mattefeather",
+  "name": "Matte Feather",
+  "category": "key",
+  "description": "Softens the alpha edge inward, outward or both with contrast and edge shift control.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Feather Radius",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 100,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "mode",
+      "label": "Feather",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Both",
+        "Inner Only",
+        "Outer Only"
+      ]
+    },
+    {
+      "id": "contrast",
+      "label": "Edge Contrast",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 6,
+      "step": 0.01
+    },
+    {
+      "id": "shift",
+      "label": "Edge Shift",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float mode;\nuniform float contrast;\nuniform float shift;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 b = float4(blurred.eval(coord));\n    float na = mode < 0.5 ? b.a : (mode < 1.5 ? min(c.a, b.a) : max(c.a, b.a));\n    na = saturate((na - 0.5 + shift * 0.5) * contrast + 0.5);\n    na = mix(c.a, na, amount);\n    float3 col = mix(unp(b), unp(c), saturate(c.a * 4.0));\n    return fin(c, float4(col * na, na), opacity);\n}\n"
+}

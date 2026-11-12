@@ -1,0 +1,82 @@
+{
+  "id": "colorbalance3way",
+  "name": "Color Balance 3-Way",
+  "category": "color",
+  "description": "Tints shadows, midtones and highlights separately, with an adjustable balance point.",
+  "params": [
+    {
+      "id": "shadowTint",
+      "label": "Shadow Tint",
+      "type": "color",
+      "default": "#3a6fff"
+    },
+    {
+      "id": "shadowAmt",
+      "label": "Shadow Amount",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "midTint",
+      "label": "Midtone Tint",
+      "type": "color",
+      "default": "#ff9a50"
+    },
+    {
+      "id": "midAmt",
+      "label": "Midtone Amount",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "highTint",
+      "label": "Highlight Tint",
+      "type": "color",
+      "default": "#ffb060"
+    },
+    {
+      "id": "highAmt",
+      "label": "Highlight Amount",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "balance",
+      "label": "Balance",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "preserve",
+      "label": "Preserve Luminance",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 shadowTint;\nuniform float shadowAmt;\nlayout(color) uniform half4 midTint;\nuniform float midAmt;\nlayout(color) uniform half4 highTint;\nuniform float highAmt;\nuniform float balance;\nuniform float preserve;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float l = luma(s);\n    float edge = 0.5 + balance * 0.35;\n    float sw = 1.0 - smoothstep(0.0, edge, l);\n    float hw = smoothstep(edge, 1.0, l);\n    float mw = saturate(1.0 - sw - hw);\n    float3 sc = float3(shadowTint.rgb);\n    float3 mc = float3(midTint.rgb);\n    float3 hc = float3(highTint.rgb);\n    float3 o = s + (sc - luma(sc)) * shadowAmt * sw + (mc - luma(mc)) * midAmt * mw + (hc - luma(hc)) * highAmt * hw;\n    if (preserve > 0.5) o *= l / max(luma(o), 0.0001);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

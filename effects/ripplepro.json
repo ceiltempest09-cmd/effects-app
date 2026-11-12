@@ -1,0 +1,123 @@
+{
+  "id": "ripplepro",
+  "name": "Ripple Pro",
+  "category": "distort",
+  "description": "Concentric ripples from a movable centre with wavelength, speed, damping, directional bias and lighting.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center Position",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "strength",
+      "label": "Wave Strength",
+      "type": "float",
+      "default": 18,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "wavelength",
+      "label": "Wavelength",
+      "type": "float",
+      "default": 120,
+      "min": 5,
+      "max": 600,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "speed",
+      "label": "Speed",
+      "type": "float",
+      "default": 1,
+      "min": -10,
+      "max": 10,
+      "step": 0.01
+    },
+    {
+      "id": "phase",
+      "label": "Phase",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "direction",
+      "label": "Direction",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "bias",
+      "label": "Directional Distortion",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "damping",
+      "label": "Damping",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "reach",
+      "label": "Reach",
+      "type": "float",
+      "default": 1.5,
+      "min": 0.05,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "shading",
+      "label": "Wave Lighting",
+      "type": "float",
+      "default": 0.25,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "inward",
+      "label": "Inward",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float strength;\nuniform float wavelength;\nuniform float speed;\nuniform float phase;\nuniform float direction;\nuniform float bias;\nuniform float damping;\nuniform float reach;\nuniform float shading;\nuniform float inward;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 d = coord - ctr;\n    float dist = length(d);\n    float2 dir = d / max(dist, 0.001);\n    float sgn = inward > 0.5 ? 1.0 : -1.0;\n    float ph = dist * 6.2831853 / max(wavelength, 1.0) + sgn * time * speed * 6.2831853 + radians(phase);\n    float env = mix(1.0, exp(-dist / (max(reach, 0.01) * length(size))), damping);\n    float w = sin(ph) * strength * env;\n    float2 axis = float2(cos(radians(direction)), sin(radians(direction)));\n    float2 disp = mix(dir, axis, bias) * w;\n    float4 r = tex(coord + disp);\n    r = float4(r.rgb * (1.0 + cos(ph) * env * shading), r.a);\n    return fin(c, r, opacity);\n}\n"
+}

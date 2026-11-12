@@ -1,0 +1,78 @@
+{
+  "id": "chromaticblur",
+  "name": "Chromatic Blur",
+  "category": "blur",
+  "description": "Blurs red, green and blue with different radii and shifts the channels apart.",
+  "params": [
+    {
+      "id": "radiusR",
+      "label": "Red Radius",
+      "type": "float",
+      "default": 14,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "radiusG",
+      "label": "Green Radius",
+      "type": "float",
+      "default": 8,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "radiusB",
+      "label": "Blue Radius",
+      "type": "float",
+      "default": 14,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "shift",
+      "label": "Channel Shift",
+      "type": "float",
+      "default": 4,
+      "min": 0,
+      "max": 50,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "shiftAngle",
+      "label": "Shift Direction",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float radiusR;\nuniform float radiusG;\nuniform float radiusB;\nuniform float shift;\nuniform float shiftAngle;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 sh = float2(cos(radians(shiftAngle)), sin(radians(shiftAngle))) * shift;\n    float3 acc = float3(0.0);\n    float aacc = 0.0;\n    for (int i = 0; i < 12; i++) {\n        float a = float(i) * 2.3999632;\n        float r = sqrt((float(i) + 0.5) / 12.0);\n        float2 d = float2(cos(a), sin(a)) * r;\n        acc.r += tex(coord + sh + d * radiusR).r;\n        acc.g += tex(coord + d * radiusG).g;\n        acc.b += tex(coord - sh + d * radiusB).b;\n        aacc += tex(coord + d * radiusG).a;\n    }\n    float4 r4 = float4(acc / 12.0, aacc / 12.0);\n    return fin(c, mix(c, r4, amount), opacity);\n}\n"
+}

@@ -1,0 +1,101 @@
+{
+  "id": "fogmist",
+  "name": "Fog & Mist",
+  "category": "noise",
+  "description": "Drifting layered fog with density, scale, drift direction, height bias and colour.",
+  "params": [
+    {
+      "id": "density",
+      "label": "Density",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "scale",
+      "label": "Scale",
+      "type": "float",
+      "default": 500,
+      "min": 100,
+      "max": 1500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "drift",
+      "label": "Drift Speed",
+      "type": "float",
+      "default": 0.15,
+      "min": 0,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "driftAngle",
+      "label": "Drift Direction",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "layers",
+      "label": "Layers",
+      "type": "float",
+      "default": 2,
+      "min": 1,
+      "max": 3,
+      "step": 1
+    },
+    {
+      "id": "heightBias",
+      "label": "Height Bias",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "contrast",
+      "label": "Contrast",
+      "type": "float",
+      "default": 1.2,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "fogColor",
+      "label": "Fog Color",
+      "type": "color",
+      "default": "#c8d4e8"
+    },
+    {
+      "id": "softness",
+      "label": "Softness",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float density;\nuniform float scale;\nuniform float drift;\nuniform float driftAngle;\nuniform float layers;\nuniform float heightBias;\nuniform float contrast;\nlayout(color) uniform half4 fogColor;\nuniform float softness;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat vnoise(float2 p) {\n    float2 i = floor(p);\n    float2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + float2(1.0, 0.0));\n    float c = hash21(i + float2(0.0, 1.0));\n    float d = hash21(i + float2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\nfloat fbm(float2 p, float oct, float rough) {\n    float v = 0.0;\n    float a = 0.5;\n    float norm = 0.0;\n    for (int i = 0; i < 6; i++) {\n        if (float(i) >= oct) break;\n        v += a * vnoise(p);\n        norm += a;\n        p = p * 2.03 + float2(11.7, 5.3);\n        a *= rough;\n    }\n    return v / max(norm, 0.0001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 dir = float2(cos(radians(driftAngle)), sin(radians(driftAngle)));\n    float2 p = coord / max(scale, 1.0) + dir * time * drift;\n    float n = fbm(p, 4.0, 0.5);\n    if (layers > 1.5) n = mix(n, fbm(p * 1.9 - dir * time * drift * 0.6 + 7.1, 4.0, 0.5), 0.5);\n    if (layers > 2.5) n = mix(n, fbm(p * 3.7 + dir * time * drift * 1.4 + 3.3, 3.0, 0.5), 0.35);\n    n = saturate((n - 0.5) * contrast + 0.5);\n    n = mix(n * n * (3.0 - 2.0 * n), n, softness);\n    float h = mix(1.0, smoothstep(0.0, 1.0, coord.y / size.y), heightBias);\n    float a = saturate(n * density * 2.0 * h);\n    float3 o = mix(s, float3(fogColor.rgb), a);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

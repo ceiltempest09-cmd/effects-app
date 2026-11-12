@@ -1,0 +1,83 @@
+{
+  "id": "glitchslices",
+  "name": "Glitch Slices",
+  "category": "distort",
+  "description": "Random sliced displacement with RGB split, density, hold rate and seed, horizontal or vertical.",
+  "params": [
+    {
+      "id": "sliceCount",
+      "label": "Slices",
+      "type": "float",
+      "default": 24,
+      "min": 2,
+      "max": 80,
+      "step": 1
+    },
+    {
+      "id": "maxShift",
+      "label": "Max Shift",
+      "type": "float",
+      "default": 60,
+      "min": 0,
+      "max": 300,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "density",
+      "label": "Density",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "rate",
+      "label": "Update Rate",
+      "type": "float",
+      "default": 12,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "fps"
+    },
+    {
+      "id": "chromatic",
+      "label": "RGB Split",
+      "type": "float",
+      "default": 6,
+      "min": 0,
+      "max": 30,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "vertical",
+      "label": "Vertical Slices",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float sliceCount;\nuniform float maxShift;\nuniform float density;\nuniform float rate;\nuniform float chromatic;\nuniform float seed;\nuniform float vertical;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float t = floor(time * rate);\n    float axisPos = vertical > 0.5 ? coord.x : coord.y;\n    float len = vertical > 0.5 ? size.x : size.y;\n    float row = floor(axisPos / len * floor(sliceCount + 0.5));\n    float rnd = hash21(float2(row + seed, t));\n    float on = step(1.0 - density, hash21(float2(row * 1.7 + seed, t + 3.0)));\n    float sh = (rnd - 0.5) * 2.0 * maxShift * on;\n    float2 dir = vertical > 0.5 ? float2(0.0, 1.0) : float2(1.0, 0.0);\n    float4 cr = tex(coord + dir * (sh + chromatic * on));\n    float4 cg = tex(coord + dir * sh);\n    float4 cb = tex(coord + dir * (sh - chromatic * on));\n    return fin(c, float4(cr.r, cg.g, cb.b, cg.a), opacity);\n}\n"
+}

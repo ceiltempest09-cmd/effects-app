@@ -1,0 +1,56 @@
+{
+  "id": "mirrorpro",
+  "name": "Mirror Pro",
+  "category": "distort",
+  "description": "Mirrors one side of the image across a line with angle, position, seam blending and flip.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Mirror Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "seamSoft",
+      "label": "Seam Blend",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 200,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "flip",
+      "label": "Flip Side",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float angle;\nuniform float seamSoft;\nuniform float flip;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 n = float2(cos(radians(angle)), sin(radians(angle)));\n    float sd = dot(coord - ctr, n);\n    float2 mp = coord - 2.0 * sd * n;\n    float sgn = flip > 0.5 ? -1.0 : 1.0;\n    float k = smoothstep(-max(seamSoft, 0.001), max(seamSoft, 0.001), sd * sgn);\n    return fin(c, mix(tex(mp), tex(coord), k), opacity);\n}\n"
+}

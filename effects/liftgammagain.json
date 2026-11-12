@@ -1,0 +1,64 @@
+{
+  "id": "liftgammagain",
+  "name": "Lift Gamma Gain",
+  "category": "color",
+  "description": "Colour wheels style grading: lift the blacks, bend the midtones and scale the whites per colour.",
+  "params": [
+    {
+      "id": "liftColor",
+      "label": "Lift Color",
+      "type": "color",
+      "default": "#808080"
+    },
+    {
+      "id": "liftAmt",
+      "label": "Lift Strength",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "gammaColor",
+      "label": "Gamma Color",
+      "type": "color",
+      "default": "#808080"
+    },
+    {
+      "id": "gammaAmt",
+      "label": "Gamma Strength",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "gainColor",
+      "label": "Gain Color",
+      "type": "color",
+      "default": "#808080"
+    },
+    {
+      "id": "gainAmt",
+      "label": "Gain Strength",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 liftColor;\nuniform float liftAmt;\nlayout(color) uniform half4 gammaColor;\nuniform float gammaAmt;\nlayout(color) uniform half4 gainColor;\nuniform float gainAmt;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 lf = (float3(liftColor.rgb) - 0.5) * 0.5 * liftAmt;\n    float3 gm = float3(1.0) + (float3(gammaColor.rgb) - 0.5) * 2.0 * gammaAmt;\n    float3 gn = float3(1.0) + (float3(gainColor.rgb) - 0.5) * 2.0 * gainAmt;\n    float3 o = s * gn + lf * (1.0 - s);\n    o = pow(max(o, float3(0.0)), float3(1.0) / max(gm, float3(0.1)));\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

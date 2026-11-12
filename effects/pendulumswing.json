@@ -1,0 +1,94 @@
+{
+  "id": "pendulumswing",
+  "name": "Pendulum Swing",
+  "category": "move",
+  "description": "Swings the layer from a pivot with amplitude, frequency, phase and damping that restarts each cycle.",
+  "params": [
+    {
+      "id": "pivot",
+      "label": "Pivot",
+      "type": "point",
+      "default": [
+        0.5,
+        0.0
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "amplitude",
+      "label": "Amplitude",
+      "type": "float",
+      "default": 20,
+      "min": 0,
+      "max": 90,
+      "step": 0.1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "frequency",
+      "label": "Frequency",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "phase",
+      "label": "Phase",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "damping",
+      "label": "Damping",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "restart",
+      "label": "Restart Every",
+      "type": "float",
+      "default": 4,
+      "min": 0.5,
+      "max": 20,
+      "step": 0.1,
+      "unit": "s"
+    },
+    {
+      "id": "transparentEdge",
+      "label": "Transparent Edges",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "shutter",
+      "label": "Motion Blur",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 pivot;\nuniform float amplitude;\nuniform float frequency;\nuniform float phase;\nuniform float damping;\nuniform float restart;\nuniform float transparentEdge;\nuniform float shutter;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nfloat4 smp(float2 p, float tr) {\n    return tr > 0.5 ? texT(p) : tex(p);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nfloat4 shot(float2 coord, float T) {\n    float t = mod(T, restart);\n    float rot = radians(amplitude) * sin(6.2831853 * frequency * t + radians(phase)) * exp(-damping * t);\n    float2 piv = pivot * size;\n    return smp(piv + rot2(coord - piv, -rot), transparentEdge);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 acc = float4(0.0);\n    for (int i = 0; i < 8; i++) {\n        acc += shot(coord, time - shutter * 0.04 * float(i) / 7.0);\n    }\n    return fin(c, acc / 8.0, opacity);\n}\n"
+}

@@ -1,0 +1,98 @@
+{
+  "id": "blackwhitemixer",
+  "name": "Black & White Mixer",
+  "category": "color",
+  "description": "Converts to black and white with a separate brightness weight for each colour family, plus optional toning.",
+  "params": [
+    {
+      "id": "reds",
+      "label": "Reds",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "yellows",
+      "label": "Yellows",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "greens",
+      "label": "Greens",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "cyans",
+      "label": "Cyans",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "blues",
+      "label": "Blues",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "magentas",
+      "label": "Magentas",
+      "type": "float",
+      "default": 1,
+      "min": -1,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "contrast",
+      "label": "Contrast",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "tintColor",
+      "label": "Tone Color",
+      "type": "color",
+      "default": "#c8a070"
+    },
+    {
+      "id": "tintAmount",
+      "label": "Tone Amount",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float reds;\nuniform float yellows;\nuniform float greens;\nuniform float cyans;\nuniform float blues;\nuniform float magentas;\nuniform float contrast;\nlayout(color) uniform half4 tintColor;\nuniform float tintAmount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 rgb2hsv(float3 c) {\n    float4 K = float4(0.0, -0.3333333, 0.6666667, -1.0);\n    float4 p = mix(float4(c.b, c.g, K.w, K.z), float4(c.g, c.b, K.x, K.y), step(c.b, c.g));\n    float4 q = mix(float4(p.x, p.y, p.w, c.r), float4(c.r, p.y, p.z, p.x), step(p.x, c.r));\n    float d = q.x - min(q.w, q.y);\n    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + 0.0000001)), d / (q.x + 0.0000001), q.x);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 h = rgb2hsv(s);\n    float wsum = 0.0;\n    wsum += reds * saturate(1.0 - abs(fract(h.x + 0.5) - 0.5) * 6.0);\n    wsum += yellows * saturate(1.0 - abs(fract(h.x - 0.1666667 + 0.5) - 0.5) * 6.0);\n    wsum += greens * saturate(1.0 - abs(fract(h.x - 0.3333333 + 0.5) - 0.5) * 6.0);\n    wsum += cyans * saturate(1.0 - abs(fract(h.x - 0.5 + 0.5) - 0.5) * 6.0);\n    wsum += blues * saturate(1.0 - abs(fract(h.x - 0.6666667 + 0.5) - 0.5) * 6.0);\n    wsum += magentas * saturate(1.0 - abs(fract(h.x - 0.8333333 + 0.5) - 0.5) * 6.0);\n    float l = luma(s);\n    float g = mix(l, l * wsum, saturate(h.y * 2.0));\n    g = (g - 0.5) * contrast + 0.5;\n    float3 gray = float3(g);\n    float3 o = mix(gray, gray * float3(tintColor.rgb) * 1.8, tintAmount);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

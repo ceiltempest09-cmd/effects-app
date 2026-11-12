@@ -1,0 +1,106 @@
+{
+  "id": "channelmixer",
+  "name": "Channel Mixer",
+  "category": "color",
+  "description": "Full 3x3 channel matrix with an optional monochrome mode.",
+  "params": [
+    {
+      "id": "rr",
+      "label": "Red from Red",
+      "type": "float",
+      "default": 1,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "rg",
+      "label": "Red from Green",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "rb",
+      "label": "Red from Blue",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "gr",
+      "label": "Green from Red",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "gg",
+      "label": "Green from Green",
+      "type": "float",
+      "default": 1,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "gb",
+      "label": "Green from Blue",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "br",
+      "label": "Blue from Red",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "bg",
+      "label": "Blue from Green",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "bb",
+      "label": "Blue from Blue",
+      "type": "float",
+      "default": 1,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "monochrome",
+      "label": "Monochrome",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float rr;\nuniform float rg;\nuniform float rb;\nuniform float gr;\nuniform float gg;\nuniform float gb;\nuniform float br;\nuniform float bg;\nuniform float bb;\nuniform float monochrome;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 o = float3(dot(s, float3(rr, rg, rb)), dot(s, float3(gr, gg, gb)), dot(s, float3(br, bg, bb)));\n    if (monochrome > 0.5) o = float3(o.r);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

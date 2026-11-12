@@ -1,0 +1,84 @@
+{
+  "id": "tiltshiftpro",
+  "name": "Tilt Shift",
+  "category": "blur",
+  "description": "Miniature look: a sharp band with blur outside, plus saturation and contrast boost.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Blur",
+      "type": "float",
+      "default": 18,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "focusPos",
+      "label": "Focus Position",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "focusWidth",
+      "label": "Focus Width",
+      "type": "float",
+      "default": 0.25,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "feather",
+      "label": "Transition",
+      "type": "float",
+      "default": 0.35,
+      "min": 0.01,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "satBoost",
+      "label": "Saturation Boost",
+      "type": "float",
+      "default": 0.2,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "contrastBoost",
+      "label": "Contrast Boost",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float focusPos;\nuniform float focusWidth;\nuniform float feather;\nuniform float angle;\nuniform float satBoost;\nuniform float contrastBoost;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 sat3(float3 c, float s) {\n    return mix(float3(dot(c, float3(0.2126, 0.7152, 0.0722))), c, s);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 b = float4(blurred.eval(coord));\n    float a = radians(angle);\n    float2 n = float2(sin(a), cos(a));\n    float d = abs(dot(coord / size - float2(0.5), n) - (focusPos - 0.5));\n    float mask = smoothstep(focusWidth * 0.5, focusWidth * 0.5 + feather, d);\n    float4 r = mix(c, b, mask);\n    float3 s = unp(r);\n    s = sat3(s, 1.0 + satBoost * mask);\n    s = (s - 0.5) * (1.0 + contrastBoost * mask) + 0.5;\n    return fin(c, float4(saturate(s) * r.a, r.a), opacity);\n}\n"
+}

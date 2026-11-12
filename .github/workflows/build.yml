@@ -45,7 +45,7 @@ jobs:
           import json, glob, shutil
           dst = 'Effects/shared/assets/effects'
           idx = json.load(open(dst + '/index.json'))
-          for f in sorted(glob.glob('effects/*.json')):
+          for f in sorted(glob.glob('effects/**/*.json', recursive=True)):
               d = json.load(open(f))
               shutil.copy(f, dst)
               if d['id'] not in idx:

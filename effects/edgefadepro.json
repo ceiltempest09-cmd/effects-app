@@ -1,0 +1,78 @@
+{
+  "id": "edgefadepro",
+  "name": "Edge Fade",
+  "category": "other",
+  "description": "Fades the layer edges to transparent with separate left, right, top and bottom widths and a curve.",
+  "params": [
+    {
+      "id": "fadeLeft",
+      "label": "Left",
+      "type": "float",
+      "default": 80,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "fadeRight",
+      "label": "Right",
+      "type": "float",
+      "default": 80,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "fadeTop",
+      "label": "Top",
+      "type": "float",
+      "default": 80,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "fadeBottom",
+      "label": "Bottom",
+      "type": "float",
+      "default": 80,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "curve",
+      "label": "Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.3,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "inset",
+      "label": "Inset",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 200,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float fadeLeft;\nuniform float fadeRight;\nuniform float fadeTop;\nuniform float fadeBottom;\nuniform float curve;\nuniform float inset;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float l = fadeLeft < 0.5 ? 1.0 : saturate((coord.x - inset) / fadeLeft);\n    float r = fadeRight < 0.5 ? 1.0 : saturate((size.x - inset - coord.x) / fadeRight);\n    float t = fadeTop < 0.5 ? 1.0 : saturate((coord.y - inset) / fadeTop);\n    float b = fadeBottom < 0.5 ? 1.0 : saturate((size.y - inset - coord.y) / fadeBottom);\n    float m = pow(l * r * t * b, curve);\n    m *= step(inset, coord.x) * step(coord.x, size.x - inset) * step(inset, coord.y) * step(coord.y, size.y - inset);\n    return fin(c, c * m, opacity);\n}\n"
+}

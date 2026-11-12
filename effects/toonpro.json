@@ -1,0 +1,80 @@
+{
+  "id": "toonpro",
+  "name": "Toon Shader",
+  "category": "stylize",
+  "description": "Cartoon look: soft colour bands, boosted saturation and inked outlines.",
+  "params": [
+    {
+      "id": "levels",
+      "label": "Color Bands",
+      "type": "float",
+      "default": 4,
+      "min": 2,
+      "max": 12,
+      "step": 1
+    },
+    {
+      "id": "bandSoft",
+      "label": "Band Softness",
+      "type": "float",
+      "default": 0.15,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "saturationBoost",
+      "label": "Saturation",
+      "type": "float",
+      "default": 1.2,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "edgeWidth",
+      "label": "Outline Width",
+      "type": "float",
+      "default": 1.5,
+      "min": 0.5,
+      "max": 6,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "edgeStrength",
+      "label": "Outline Strength",
+      "type": "float",
+      "default": 3,
+      "min": 0,
+      "max": 10,
+      "step": 0.01
+    },
+    {
+      "id": "edgeCut",
+      "label": "Outline Cutoff",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "edgeColor",
+      "label": "Outline Color",
+      "type": "color",
+      "default": "#101018"
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float levels;\nuniform float bandSoft;\nuniform float saturationBoost;\nuniform float edgeWidth;\nuniform float edgeStrength;\nuniform float edgeCut;\nlayout(color) uniform half4 edgeColor;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 sat3(float3 c, float s) {\n    return mix(float3(dot(c, float3(0.2126, 0.7152, 0.0722))), c, s);\n}\nfloat edgeAt(float2 p, float w) {\n    float tl = luma(tex(p + float2(-w, -w)).rgb);\n    float tc = luma(tex(p + float2(0.0, -w)).rgb);\n    float tr = luma(tex(p + float2(w, -w)).rgb);\n    float ml = luma(tex(p + float2(-w, 0.0)).rgb);\n    float mr = luma(tex(p + float2(w, 0.0)).rgb);\n    float bl = luma(tex(p + float2(-w, w)).rgb);\n    float bc = luma(tex(p + float2(0.0, w)).rgb);\n    float br = luma(tex(p + float2(w, w)).rgb);\n    float gx = -tl - 2.0 * ml - bl + tr + 2.0 * mr + br;\n    float gy = -tl - 2.0 * tc - tr + bl + 2.0 * bc + br;\n    return length(float2(gx, gy));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float l = luma(s);\n    float t = l * levels;\n    float ql = (floor(t) + smoothstep(0.5 - bandSoft * 0.5, 0.5 + bandSoft * 0.5, fract(t))) / levels;\n    float3 o = s * (ql / max(l, 0.001));\n    o = sat3(o, saturationBoost);\n    float e = smoothstep(edgeCut, edgeCut + 0.3, edgeAt(coord, edgeWidth) * edgeStrength * 0.3);\n    o = mix(saturate(o), float3(edgeColor.rgb), e);\n    return fin(c, float4(o * c.a, c.a), opacity);\n}\n"
+}

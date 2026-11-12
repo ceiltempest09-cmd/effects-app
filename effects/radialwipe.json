@@ -1,0 +1,75 @@
+{
+  "id": "radialwipe",
+  "name": "Radial Wipe Pro",
+  "category": "other",
+  "description": "Clock style wipe transition with start angle, direction, feather and reveal or hide.",
+  "params": [
+    {
+      "id": "progress",
+      "label": "Progress",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.002,
+      "percent": true
+    },
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "startAngle",
+      "label": "Start Angle",
+      "type": "angle",
+      "default": -90,
+      "min": -180,
+      "max": 180,
+      "step": 1
+    },
+    {
+      "id": "clockwise",
+      "label": "Clockwise",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "feather",
+      "label": "Feather",
+      "type": "float",
+      "default": 0.05,
+      "min": 0,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Reveal",
+        "Hide"
+      ]
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float progress;\nuniform float2 center;\nuniform float startAngle;\nuniform float clockwise;\nuniform float feather;\nuniform float mode;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 d = coord - center * size;\n    float t = fract((atan(d.y, d.x) - radians(startAngle)) / 6.2831853 + 1.0);\n    if (clockwise < 0.5) t = 1.0 - t;\n    float edgePos = progress * (1.0 + feather) - feather;\n    float reveal = 1.0 - smoothstep(edgePos, edgePos + max(feather, 0.001), t);\n    float mask = mode < 0.5 ? reveal : 1.0 - reveal;\n    return fin(c, c * mask, opacity);\n}\n"
+}

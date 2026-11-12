@@ -1,0 +1,86 @@
+{
+  "id": "coloroverlay",
+  "name": "Color Overlay Pro",
+  "category": "other",
+  "description": "Solid colour overlay restricted to a brightness range with softness, invert range and blend mode.",
+  "params": [
+    {
+      "id": "overlayColor",
+      "label": "Color",
+      "type": "color",
+      "default": "#ff8a3a"
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "blend",
+      "label": "Blend Mode",
+      "type": "choice",
+      "default": 5,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    },
+    {
+      "id": "lumaMin",
+      "label": "Brightness Min",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "lumaMax",
+      "label": "Brightness Max",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "softness",
+      "label": "Range Softness",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "invertRange",
+      "label": "Invert Range",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 overlayColor;\nuniform float amount;\nuniform float blend;\nuniform float lumaMin;\nuniform float lumaMax;\nuniform float softness;\nuniform float invertRange;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float l = luma(s);\n    float m = smoothstep(lumaMin - softness, lumaMin + softness + 0.0001, l) * (1.0 - smoothstep(lumaMax - softness, lumaMax + softness + 0.0001, l));\n    if (invertRange > 0.5) m = 1.0 - m;\n    float3 o = mix(s, blendm(s, float3(overlayColor.rgb), blend), m * amount);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

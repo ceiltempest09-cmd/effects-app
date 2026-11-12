@@ -1,0 +1,63 @@
+{
+  "id": "letterboxbars",
+  "name": "Letterbox & Pillarbox",
+  "category": "other",
+  "description": "Cinema bars for any target aspect ratio with position, softness, colour and open amount.",
+  "params": [
+    {
+      "id": "targetAspect",
+      "label": "Aspect Ratio",
+      "type": "float",
+      "default": 2.39,
+      "min": 0.5,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "position",
+      "label": "Position",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "barColor",
+      "label": "Bar Color",
+      "type": "color",
+      "default": "#000000"
+    },
+    {
+      "id": "softness",
+      "label": "Edge Softness",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 40,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "amount",
+      "label": "Open Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float targetAspect;\nuniform float position;\nlayout(color) uniform half4 barColor;\nuniform float softness;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float soft = max(softness, 0.5);\n    float barH = max((size.y - size.x / targetAspect) * 0.5, 0.0) * amount;\n    float barW = max((size.x - size.y * targetAspect) * 0.5, 0.0) * amount;\n    float top = barH * (1.0 + position);\n    float bottom = barH * (1.0 - position);\n    float topM = 1.0 - smoothstep(top - soft, top, coord.y);\n    float botM = smoothstep(size.y - bottom, size.y - bottom + soft, coord.y);\n    float leftM = 1.0 - smoothstep(barW - soft, barW, coord.x);\n    float rightM = smoothstep(size.x - barW, size.x - barW + soft, coord.x);\n    float bars = max(max(topM, botM), max(leftM, rightM));\n    float3 o = mix(s, float3(barColor.rgb), bars);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

@@ -1,0 +1,108 @@
+{
+  "id": "neonoutline",
+  "name": "Neon Outline",
+  "category": "stylize",
+  "description": "Neon tube look: a bright core line with coloured bloom, flicker and base darkening.",
+  "params": [
+    {
+      "id": "width",
+      "label": "Line Width",
+      "type": "float",
+      "default": 1.5,
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "edgeCut",
+      "label": "Edge Cutoff",
+      "type": "float",
+      "default": 0.08,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "glowSize",
+      "label": "Glow Size",
+      "type": "float",
+      "default": 4,
+      "min": 0.5,
+      "max": 30,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "intensity",
+      "label": "Intensity",
+      "type": "float",
+      "default": 2,
+      "min": 0,
+      "max": 6,
+      "step": 0.01
+    },
+    {
+      "id": "coreColor",
+      "label": "Core Color",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "glowColor",
+      "label": "Glow Color",
+      "type": "color",
+      "default": "#ff2aa0"
+    },
+    {
+      "id": "coreAmount",
+      "label": "Core Amount",
+      "type": "float",
+      "default": 0.7,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "darkenBase",
+      "label": "Darken Base",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "flicker",
+      "label": "Flicker",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "flickerSpeed",
+      "label": "Flicker Speed",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 60,
+      "step": 0.1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float width;\nuniform float edgeCut;\nuniform float glowSize;\nuniform float intensity;\nlayout(color) uniform half4 coreColor;\nlayout(color) uniform half4 glowColor;\nuniform float coreAmount;\nuniform float darkenBase;\nuniform float flicker;\nuniform float flickerSpeed;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat edgeAt(float2 p, float w) {\n    float tl = luma(tex(p + float2(-w, -w)).rgb);\n    float tc = luma(tex(p + float2(0.0, -w)).rgb);\n    float tr = luma(tex(p + float2(w, -w)).rgb);\n    float ml = luma(tex(p + float2(-w, 0.0)).rgb);\n    float mr = luma(tex(p + float2(w, 0.0)).rgb);\n    float bl = luma(tex(p + float2(-w, w)).rgb);\n    float bc = luma(tex(p + float2(0.0, w)).rgb);\n    float br = luma(tex(p + float2(w, w)).rgb);\n    float gx = -tl - 2.0 * ml - bl + tr + 2.0 * mr + br;\n    float gy = -tl - 2.0 * tc - tr + bl + 2.0 * bc + br;\n    return length(float2(gx, gy));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float core = saturate((edgeAt(coord, width) - edgeCut) * intensity);\n    float g1 = edgeAt(coord, glowSize);\n    float g2 = edgeAt(coord, glowSize * 2.5);\n    float glow = saturate((g1 * 0.7 + g2 * 0.5 - edgeCut) * intensity);\n    float fl = 1.0 - flicker * (0.5 + 0.5 * sin(time * flickerSpeed + hash21(float2(floor(time * flickerSpeed), 1.0)) * 6.0));\n    float3 o = s * (1.0 - darkenBase);\n    o += float3(glowColor.rgb) * glow * fl;\n    o += mix(float3(glowColor.rgb), float3(coreColor.rgb), coreAmount) * core * fl;\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

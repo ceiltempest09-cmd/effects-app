@@ -1,0 +1,62 @@
+{
+  "id": "sharpenpro",
+  "name": "Sharpen Pro (Unsharp Mask)",
+  "category": "stylize",
+  "description": "Unsharp mask sharpening with radius, amount, noise cutoff, luma only mode and halo protection.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Radius",
+      "type": "float",
+      "default": 3,
+      "min": 0,
+      "max": 30,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "noiseCut",
+      "label": "Noise Cutoff",
+      "type": "float",
+      "default": 0.01,
+      "min": 0,
+      "max": 0.2,
+      "step": 0.001
+    },
+    {
+      "id": "lumaOnly",
+      "label": "Luminance Only",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "haloLimit",
+      "label": "Halo Limit",
+      "type": "float",
+      "default": 1,
+      "min": 0.02,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float amount;\nuniform float noiseCut;\nuniform float lumaOnly;\nuniform float haloLimit;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 b = unp(float4(blurred.eval(coord)));\n    float3 d = s - b;\n    if (lumaOnly > 0.5) d = float3(luma(s) - luma(b));\n    float gate = smoothstep(0.0, noiseCut + 0.0001, abs(luma(s) - luma(b)));\n    d = clamp(d, float3(-haloLimit), float3(haloLimit));\n    float3 o = s + d * amount * gate;\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

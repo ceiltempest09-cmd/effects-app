@@ -1,0 +1,86 @@
+{
+  "id": "halftonelines",
+  "name": "Halftone Lines",
+  "category": "stylize",
+  "description": "Engraving style lines whose thickness follows brightness, with angle, spacing and wobble.",
+  "params": [
+    {
+      "id": "spacing",
+      "label": "Line Spacing",
+      "type": "float",
+      "default": 8,
+      "min": 2,
+      "max": 40,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 45,
+      "min": 0,
+      "max": 180,
+      "step": 1
+    },
+    {
+      "id": "sharpness",
+      "label": "Sharpness",
+      "type": "float",
+      "default": 0.8,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "wobble",
+      "label": "Wobble",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "wobbleScale",
+      "label": "Wobble Scale",
+      "type": "float",
+      "default": 60,
+      "min": 10,
+      "max": 300,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "inkColor",
+      "label": "Ink Color",
+      "type": "color",
+      "default": "#101010"
+    },
+    {
+      "id": "paperColor",
+      "label": "Paper Color",
+      "type": "color",
+      "default": "#fff8ec"
+    },
+    {
+      "id": "invert",
+      "label": "Invert",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float spacing;\nuniform float angle;\nuniform float sharpness;\nuniform float wobble;\nuniform float wobbleScale;\nlayout(color) uniform half4 inkColor;\nlayout(color) uniform half4 paperColor;\nuniform float invert;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat vnoise(float2 p) {\n    float2 i = floor(p);\n    float2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + float2(1.0, 0.0));\n    float c = hash21(i + float2(0.0, 1.0));\n    float d = hash21(i + float2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float l = luma(s);\n    if (invert > 0.5) l = 1.0 - l;\n    float2 p = rot2(coord, -radians(angle));\n    float d = p.y / spacing + (vnoise(coord / wobbleScale) - 0.5) * wobble * 4.0;\n    float f = abs(fract(d) - 0.5);\n    float t = (1.0 - l) * 0.5;\n    float soft = mix(0.25, 0.015, sharpness);\n    float m = 1.0 - smoothstep(t - soft, t + soft, f);\n    float3 o = mix(float3(paperColor.rgb), float3(inkColor.rgb), m);\n    return fin(c, float4(o * c.a, c.a), opacity);\n}\n"
+}

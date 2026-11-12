@@ -1,0 +1,78 @@
+{
+  "id": "rowslide",
+  "name": "Row Slide Repeat",
+  "category": "repeat",
+  "description": "Rows slide sideways in alternating directions with random speeds and seamless wrapping.",
+  "params": [
+    {
+      "id": "rows",
+      "label": "Rows",
+      "type": "float",
+      "default": 8,
+      "min": 1,
+      "max": 40,
+      "step": 1
+    },
+    {
+      "id": "speed",
+      "label": "Speed",
+      "type": "float",
+      "default": 0.2,
+      "min": -2,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "alternate",
+      "label": "Alternate Directions",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "randomSpeed",
+      "label": "Random Speed",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "vertical",
+      "label": "Vertical Strips",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "gap",
+      "label": "Row Gap",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 0.9,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float rows;\nuniform float speed;\nuniform float alternate;\nuniform float randomSpeed;\nuniform float seed;\nuniform float vertical;\nuniform float gap;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float n = max(floor(rows + 0.5), 1.0);\n    float axisPos = vertical > 0.5 ? coord.x : coord.y;\n    float axisLen = vertical > 0.5 ? size.x : size.y;\n    float row = floor(axisPos / axisLen * n);\n    float f = fract(axisPos / axisLen * n);\n    float dirn = alternate > 0.5 ? (mod(row, 2.0) > 0.5 ? -1.0 : 1.0) : 1.0;\n    float rnd = 1.0 + (hash21(float2(row, seed)) - 0.5) * 2.0 * randomSpeed;\n    float off = dirn * rnd * time * speed;\n    float other = vertical > 0.5 ? coord.y : coord.x;\n    float otherLen = vertical > 0.5 ? size.y : size.x;\n    float w = fract(other / otherLen + off) * otherLen;\n    float2 q = vertical > 0.5 ? float2(coord.x, w) : float2(w, coord.y);\n    float keep = step(gap * 0.5, f) * step(f, 1.0 - gap * 0.5);\n    return fin(c, tex(q) * keep, opacity);\n}\n"
+}

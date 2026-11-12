@@ -1,0 +1,133 @@
+{
+  "id": "gridoverlay",
+  "name": "Grid Overlay",
+  "category": "other",
+  "description": "Technical grid with minor and major lines, angle, offset, intersection dots, colour and blend mode.",
+  "params": [
+    {
+      "id": "cell",
+      "label": "Cell Size",
+      "type": "float",
+      "default": 60,
+      "min": 10,
+      "max": 400,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "lineWidth",
+      "label": "Line Width",
+      "type": "float",
+      "default": 1,
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "majorEvery",
+      "label": "Major Every",
+      "type": "float",
+      "default": 4,
+      "min": 1,
+      "max": 10,
+      "step": 1
+    },
+    {
+      "id": "majorWidth",
+      "label": "Major Width",
+      "type": "float",
+      "default": 2,
+      "min": 0.5,
+      "max": 20,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "majorBoost",
+      "label": "Major Brightness",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 90,
+      "step": 0.5
+    },
+    {
+      "id": "anchor",
+      "label": "Anchor",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "dots",
+      "label": "Intersection Dots",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "dotSize",
+      "label": "Dot Size",
+      "type": "float",
+      "default": 4,
+      "min": 1,
+      "max": 20,
+      "step": 0.1,
+      "pixels": true,
+      "when": {
+        "dots": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "lineColor",
+      "label": "Line Color",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "blend",
+      "label": "Blend Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float cell;\nuniform float lineWidth;\nuniform float majorEvery;\nuniform float majorWidth;\nuniform float majorBoost;\nuniform float angle;\nuniform float2 anchor;\nuniform float dots;\nuniform float dotSize;\nlayout(color) uniform half4 lineColor;\nuniform float blend;\nuniform float amount;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 p = rot2(coord - anchor * size, -radians(angle));\n    float2 g = p / cell;\n    float2 f = abs(fract(g + 0.5) - 0.5) * cell;\n    float lineM = 1.0 - smoothstep(lineWidth * 0.5, lineWidth * 0.5 + 1.0, min(f.x, f.y));\n    float me = max(majorEvery, 1.0);\n    float2 fm = abs(fract(g / me + 0.5) - 0.5) * cell * me;\n    float majorM = 1.0 - smoothstep(majorWidth * 0.5, majorWidth * 0.5 + 1.0, min(fm.x, fm.y));\n    float m = max(lineM, majorM * majorBoost);\n    if (dots > 0.5) m = max(m, 1.0 - smoothstep(dotSize * 0.5, dotSize * 0.5 + 1.0, length(f)));\n    float3 o = mix(s, blendm(s, float3(lineColor.rgb), blend), saturate(m) * amount);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), 1.0);\n}\n"
+}

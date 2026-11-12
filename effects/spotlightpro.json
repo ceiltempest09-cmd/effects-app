@@ -1,0 +1,99 @@
+{
+  "id": "spotlightpro",
+  "name": "Spotlight",
+  "category": "other",
+  "description": "Stage spotlight: darkens outside an oval beam with adjustable size, feather, aspect, rotation, tint and warm light.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 0.45,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "feather",
+      "label": "Feather",
+      "type": "float",
+      "default": 0.5,
+      "min": 0.01,
+      "max": 1.5,
+      "step": 0.005
+    },
+    {
+      "id": "aspect",
+      "label": "Aspect",
+      "type": "float",
+      "default": 1,
+      "min": 0.3,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "rotation",
+      "label": "Rotation",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "ambient",
+      "label": "Ambient Light",
+      "type": "float",
+      "default": 0.2,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "darkColor",
+      "label": "Shadow Tint",
+      "type": "color",
+      "default": "#00000a"
+    },
+    {
+      "id": "lightColor",
+      "label": "Light Color",
+      "type": "color",
+      "default": "#fff3d0"
+    },
+    {
+      "id": "lightAmount",
+      "label": "Light Amount",
+      "type": "float",
+      "default": 0.25,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float radius;\nuniform float feather;\nuniform float aspect;\nuniform float rotation;\nuniform float ambient;\nlayout(color) uniform half4 darkColor;\nlayout(color) uniform half4 lightColor;\nuniform float lightAmount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 d = rot2((coord / size - center) * float2(size.x / size.y, 1.0), radians(rotation));\n    d.x /= aspect;\n    float beam = 1.0 - smoothstep(radius, radius + feather, length(d));\n    float3 dark = mix(s * ambient, float3(darkColor.rgb), 0.15 * (1.0 - ambient));\n    float3 o = mix(dark, s, beam);\n    o += float3(lightColor.rgb) * beam * beam * lightAmount * 0.5;\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

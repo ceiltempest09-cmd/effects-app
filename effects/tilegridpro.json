@@ -1,0 +1,96 @@
+{
+  "id": "tilegridpro",
+  "name": "Tile Grid Pro",
+  "category": "repeat",
+  "description": "Repeats the layer in a grid with mirroring, brick offset, gaps, tile scale and scrolling.",
+  "params": [
+    {
+      "id": "tilesX",
+      "label": "Tiles Across",
+      "type": "float",
+      "default": 3,
+      "min": 1,
+      "max": 16,
+      "step": 1
+    },
+    {
+      "id": "tilesY",
+      "label": "Tiles Down",
+      "type": "float",
+      "default": 3,
+      "min": 1,
+      "max": 16,
+      "step": 1
+    },
+    {
+      "id": "mirror",
+      "label": "Mirror",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "None",
+        "Mirror X",
+        "Mirror Y",
+        "Mirror Both"
+      ]
+    },
+    {
+      "id": "rowOffset",
+      "label": "Row Offset",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "gap",
+      "label": "Gap",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "tileScale",
+      "label": "Tile Scale",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "scroll",
+      "label": "Scroll Speed",
+      "type": "float",
+      "default": 0,
+      "min": -2,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "scrollAngle",
+      "label": "Scroll Direction",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float tilesX;\nuniform float tilesY;\nuniform float mirror;\nuniform float rowOffset;\nuniform float gap;\nuniform float tileScale;\nuniform float scroll;\nuniform float scrollAngle;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 n = float2(max(floor(tilesX + 0.5), 1.0), max(floor(tilesY + 0.5), 1.0));\n    float2 uv = coord / size * n;\n    float2 sc = float2(cos(radians(scrollAngle)), sin(radians(scrollAngle))) * time * scroll;\n    uv += sc;\n    uv.x += floor(uv.y) * rowOffset;\n    float2 cell = floor(uv);\n    float2 f = fract(uv);\n    if ((mirror > 0.5 && mirror < 1.5) || mirror > 2.5) f.x = mod(cell.x, 2.0) > 0.5 ? 1.0 - f.x : f.x;\n    if (mirror > 1.5) f.y = mod(cell.y, 2.0) > 0.5 ? 1.0 - f.y : f.y;\n    float2 gapF = gap / (size / n);\n    float2 g = (f - 0.5) / max(float2(1.0) - gapF, float2(0.05)) / tileScale + 0.5;\n    float4 r = texT(g * size);\n    float inside = step(0.0, g.x) * step(g.x, 1.0) * step(0.0, g.y) * step(g.y, 1.0);\n    return fin(c, r * inside, opacity);\n}\n"
+}

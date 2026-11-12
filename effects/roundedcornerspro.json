@@ -1,0 +1,85 @@
+{
+  "id": "roundedcornerspro",
+  "name": "Rounded Corners & Border",
+  "category": "other",
+  "description": "Rounds the layer corners with smoothing, inset, border colour and width, and an outer glow.",
+  "params": [
+    {
+      "id": "cornerRadius",
+      "label": "Corner Radius",
+      "type": "float",
+      "default": 40,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "inset",
+      "label": "Inset",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "smoothing",
+      "label": "Edge Smoothing",
+      "type": "float",
+      "default": 1.5,
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "borderWidth",
+      "label": "Border Width",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 40,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "borderColor",
+      "label": "Border Color",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "glowSize",
+      "label": "Glow Size",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "glowAmount",
+      "label": "Glow Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float cornerRadius;\nuniform float inset;\nuniform float smoothing;\nuniform float borderWidth;\nlayout(color) uniform half4 borderColor;\nuniform float glowSize;\nuniform float glowAmount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 p = coord - size * 0.5;\n    float2 halfSize = size * 0.5 - float2(inset);\n    float rad = min(cornerRadius, min(halfSize.x, halfSize.y));\n    float2 q = abs(p) - halfSize + float2(rad);\n    float sd = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - rad;\n    float m = 1.0 - smoothstep(-smoothing * 0.5, smoothing * 0.5, sd);\n    float ring = m * smoothstep(-borderWidth - smoothing * 0.5, -borderWidth + smoothing * 0.5, sd) * step(0.01, borderWidth);\n    float g = exp(-max(sd, 0.0) / max(glowSize, 0.001)) * (1.0 - m) * glowAmount * step(0.01, glowSize);\n    float3 col = mix(s, float3(borderColor.rgb), ring);\n    float a = max(c.a * m, g);\n    float3 o = mix(col, float3(borderColor.rgb), g * (1.0 - m));\n    return fin(c, float4(max(o, float3(0.0)) * a, a), opacity);\n}\n"
+}

@@ -1,0 +1,221 @@
+{
+  "package": "EM FFX Preset Reconstructions",
+  "version": 1,
+  "source_count": 10,
+  "groups": {
+    "bloom": {
+      "file": "EM_BLOOM.json",
+      "modes": 4
+    },
+    "colorize": {
+      "file": "EM_COLORIZE.json",
+      "modes": 6
+    }
+  },
+  "sources": [
+    {
+      "id": "bloom_brights_darks",
+      "name": "Brights + Darks",
+      "source_file": "Bloom - brights+darks.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "f0dfc15d6d73ecec177721b906c1ee57a685c7482e765a3c07a7fec5e0f8f5b4",
+      "source_size_bytes": 195607,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Box Blur2",
+          "display_name": "Fast Box Blur"
+        },
+        {
+          "match_name": "ADBE Calculations",
+          "display_name": "Calculations"
+        },
+        {
+          "match_name": "ADBE Calculations",
+          "display_name": "Calculations"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "bloom_brights",
+      "name": "Brights",
+      "source_file": "Bloom - brights.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "0186b5d9352f61d2bd3fa287e732ca8bbe430510f97332c7ef8cff90a14ba2c3",
+      "source_size_bytes": 173054,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Box Blur2",
+          "display_name": "Fast Box Blur"
+        },
+        {
+          "match_name": "ADBE Calculations",
+          "display_name": "Calculations"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "bloom_crystallize_1",
+      "name": "Crystallize 1",
+      "source_file": "Bloom - crystallize 1.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "4f64be8db707db037c8642a2195ed2666b7b11ff83fd9beb25395dadf05e3322",
+      "source_size_bytes": 182198,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Minimax",
+          "display_name": "Minimax"
+        },
+        {
+          "match_name": "ADBE Calculations",
+          "display_name": "Calculations"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "bloom_crystallize_2",
+      "name": "Crystallize 2",
+      "source_file": "Bloom - crystallize 2.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "bcadc0a6716046e7490b1fead349e4973f1877f1adf769f7aad060f69bc594fe",
+      "source_size_bytes": 160495,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Minimax",
+          "display_name": "Minimax"
+        },
+        {
+          "match_name": "ADBE Calculations",
+          "display_name": "Calculations"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_blue_wash",
+      "name": "Blue Wash",
+      "source_file": "Colorize - blue wash.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "0cec6c0782cc6a2bf2d151fe8e5a2c57ad3e61997599e6bead05440c9b1f914d",
+      "source_size_bytes": 202350,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Color Balance (HLS)",
+          "display_name": "Color Balance (HLS)"
+        },
+        {
+          "match_name": "ADBE Color Balance 2",
+          "display_name": "Color Balance"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_infrared",
+      "name": "Infrared",
+      "source_file": "Colorize - infrared.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "e2b7444f38c3f7259493da297aeb8ab7f5dc29301c3e484b3c55a316d0eb654e",
+      "source_size_bytes": 260374,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Solid Composite",
+          "display_name": "Solid Composite"
+        },
+        {
+          "match_name": "ADBE Easy Levels2",
+          "display_name": "Easy Levels"
+        },
+        {
+          "match_name": "ADBE HUE SATURATION",
+          "display_name": "Hue/Saturation"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_moonshadows",
+      "name": "Moonshadows",
+      "source_file": "Colorize - moonshadows.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "d55a1737010f6466e0b8e68ffb1dd14b3f10bb97c4dd33100ddbe00071fc110b",
+      "source_size_bytes": 141642,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Solid Composite",
+          "display_name": "Solid Composite"
+        },
+        {
+          "match_name": "ADBE HUE SATURATION",
+          "display_name": "Hue/Saturation"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_gold_dip",
+      "name": "Gold Dip",
+      "source_file": "Colorize - gold dip.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "5bf57c5ea7b075a9280677419272209ae4cd588f16997a1d3911b695f9ca4c14",
+      "source_size_bytes": 219302,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Solid Composite",
+          "display_name": "Solid Composite"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_royal_purple",
+      "name": "Royal Purple",
+      "source_file": "Colorize - royal purple.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "d1646cb99e2979053877219f502a18bca02a33634ac7b8d4662da7b9525485f9",
+      "source_size_bytes": 246221,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Solid Composite",
+          "display_name": "Solid Composite"
+        },
+        {
+          "match_name": "ADBE Easy Levels2",
+          "display_name": "Easy Levels"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    },
+    {
+      "id": "colorize_red_hand_tint",
+      "name": "Red Hand Tint",
+      "source_file": "Colorize - red hand tint.ffx",
+      "source_format": "Adobe After Effects .ffx (RIFX/FaFX preset)",
+      "source_sha256": "a2c3c2fb02ee5283845cde633dc19128bd7af5392d52f4123e73535e366a3738",
+      "source_size_bytes": 170860,
+      "conversion_status": "structure_identified_reconstruction_required",
+      "source_effects": [
+        {
+          "match_name": "ADBE Leave Color",
+          "display_name": "Leave Color"
+        },
+        {
+          "match_name": "ADBE HUE SATURATION",
+          "display_name": "Hue/Saturation"
+        }
+      ],
+      "notes": "Effect stack identifiers were recovered from the preset. Exact animated/keyframed parameter values and pixel behavior are not represented as verified EM-native code."
+    }
+  ]
+}

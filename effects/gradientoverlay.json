@@ -1,0 +1,142 @@
+{
+  "id": "gradientoverlay",
+  "name": "Gradient Overlay",
+  "category": "other",
+  "description": "Two colour gradient overlay: linear, radial, angular or reflected, with opacity per colour, dither and blend mode.",
+  "params": [
+    {
+      "id": "colorA",
+      "label": "Color A",
+      "type": "color",
+      "default": "#ff2a70"
+    },
+    {
+      "id": "colorB",
+      "label": "Color B",
+      "type": "color",
+      "default": "#2a6aff"
+    },
+    {
+      "id": "alphaA",
+      "label": "Alpha A",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "alphaB",
+      "label": "Alpha B",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "mode",
+      "label": "Type",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Linear",
+        "Radial",
+        "Angular",
+        "Reflected"
+      ]
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 90,
+      "min": 0,
+      "max": 360,
+      "step": 1,
+      "when": {
+        "mode": [
+          0,
+          3
+        ]
+      }
+    },
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001,
+      "when": {
+        "mode": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "gradScale",
+      "label": "Scale",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "dither",
+      "label": "Dither",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "blend",
+      "label": "Blend Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 colorA;\nlayout(color) uniform half4 colorB;\nuniform float alphaA;\nuniform float alphaB;\nuniform float mode;\nuniform float angle;\nuniform float2 center;\nuniform float gradScale;\nuniform float shift;\nuniform float dither;\nuniform float blend;\nuniform float amount;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 uv = coord / size;\n    float2 d = (uv - center) * float2(size.x / size.y, 1.0);\n    float t = dot(uv - float2(0.5), float2(cos(radians(angle)), sin(radians(angle)))) + 0.5;\n    if (mode > 0.5 && mode < 1.5) t = length(d) * 1.4142;\n    else if (mode > 1.5 && mode < 2.5) t = atan(d.y, d.x) / 6.2831853 + 0.5;\n    else if (mode > 2.5) t = 1.0 - abs(2.0 * t - 1.0);\n    t = saturate((t - 0.5) / gradScale + 0.5 + shift);\n    t += (hash21(coord) - 0.5) * dither * 0.02;\n    float3 layer = mix(float3(colorA.rgb), float3(colorB.rgb), saturate(t));\n    float la = mix(alphaA, alphaB, saturate(t)) * amount;\n    float3 o = mix(s, blendm(s, layer, blend), la);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), 1.0);\n}\n"
+}

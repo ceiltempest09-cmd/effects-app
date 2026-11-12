@@ -1,0 +1,79 @@
+{
+  "id": "zoomtunnel",
+  "name": "Zoom Tunnel Repeat",
+  "category": "repeat",
+  "description": "Self similar infinite zoom repeating the image toward a centre with factor, speed and twist.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "factor",
+      "label": "Zoom Factor",
+      "type": "float",
+      "default": 2,
+      "min": 1.1,
+      "max": 6,
+      "step": 0.01
+    },
+    {
+      "id": "speed",
+      "label": "Zoom Speed",
+      "type": "float",
+      "default": 0.4,
+      "min": -3,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "baseRadius",
+      "label": "Base Radius",
+      "type": "float",
+      "default": 200,
+      "min": 20,
+      "max": 1000,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "twist",
+      "label": "Twist per Ring",
+      "type": "float",
+      "default": 0,
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "fade",
+      "label": "Ring Fade",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float2 center;\nuniform float factor;\nuniform float speed;\nuniform float baseRadius;\nuniform float twist;\nuniform float fade;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 ctr = center * size;\n    float2 d = coord - ctr;\n    float r = max(length(d), 0.001);\n    float e = log(r / baseRadius) / log(factor);\n    float ph = e - time * speed;\n    float k = floor(ph);\n    float2 q = rot2(d, radians(twist) * k) / (pow(factor, k + time * speed));\n    float4 s4 = texT(ctr + q);\n    float edge = fract(ph);\n    s4 = s4 * mix(1.0, smoothstep(0.0, 0.2, edge) * (1.0 - smoothstep(0.8, 1.0, edge)), fade);\n    return fin(c, s4, opacity);\n}\n"
+}

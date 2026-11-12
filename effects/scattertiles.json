@@ -1,0 +1,84 @@
+{
+  "id": "scattertiles",
+  "name": "Scatter Tiles",
+  "category": "repeat",
+  "description": "Grid of tiles with random offset, rotation and scale per tile, with animation.",
+  "params": [
+    {
+      "id": "tiles",
+      "label": "Tiles",
+      "type": "float",
+      "default": 4,
+      "min": 1,
+      "max": 16,
+      "step": 1
+    },
+    {
+      "id": "randOffset",
+      "label": "Random Offset",
+      "type": "float",
+      "default": 0.2,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "randRotation",
+      "label": "Random Rotation",
+      "type": "float",
+      "default": 15,
+      "min": 0,
+      "max": 180,
+      "step": 0.5,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "randScale",
+      "label": "Random Scale",
+      "type": "float",
+      "default": 0.2,
+      "min": 0,
+      "max": 0.8,
+      "step": 0.01
+    },
+    {
+      "id": "baseScale",
+      "label": "Tile Scale",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 2,
+      "step": 0.005
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "animate",
+      "label": "Animation",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float tiles;\nuniform float randOffset;\nuniform float randRotation;\nuniform float randScale;\nuniform float baseScale;\nuniform float seed;\nuniform float animate;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat2 hash22(float2 p) {\n    return float2(hash21(p), hash21(p + float2(17.31, 5.17)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float n = max(floor(tiles + 0.5), 1.0);\n    float2 uv = coord / size * n;\n    float2 cell = floor(uv);\n    float2 f = fract(uv) - 0.5;\n    float2 r = hash22(cell + seed * 3.1);\n    float t = time * animate;\n    float2 off = (float2(sin(t + r.x * 6.28), cos(t * 0.8 + r.y * 6.28)) * 0.5 + (r - 0.5)) * randOffset;\n    float rot = (r.x - 0.5) * 2.0 * radians(randRotation);\n    float sc = baseScale * (1.0 + (r.y - 0.5) * 2.0 * randScale);\n    float2 q = rot2(f - off, -rot) / sc + 0.5;\n    float inside = step(0.0, q.x) * step(q.x, 1.0) * step(0.0, q.y) * step(q.y, 1.0);\n    return fin(c, texT(q * size) * inside, opacity);\n}\n"
+}

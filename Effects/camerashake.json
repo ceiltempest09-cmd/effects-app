@@ -1,0 +1,92 @@
+{
+  "id": "camerashake",
+  "name": "Camera Shake Pro",
+  "category": "move",
+  "description": "Handheld camera shake with amplitude, rotation, zoom shake, frequency, roughness, seed and motion blur.",
+  "params": [
+    {
+      "id": "amplitude",
+      "label": "Amplitude",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 100,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "rotation",
+      "label": "Rotation",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 10,
+      "step": 0.05,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "zoomShake",
+      "label": "Zoom Shake",
+      "type": "float",
+      "default": 0.02,
+      "min": 0,
+      "max": 0.2,
+      "step": 0.001
+    },
+    {
+      "id": "frequency",
+      "label": "Frequency",
+      "type": "float",
+      "default": 8,
+      "min": 0,
+      "max": 30,
+      "step": 0.1
+    },
+    {
+      "id": "roughness",
+      "label": "Roughness",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "transparentEdge",
+      "label": "Transparent Edges",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "shutter",
+      "label": "Motion Blur",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float amplitude;\nuniform float rotation;\nuniform float zoomShake;\nuniform float frequency;\nuniform float roughness;\nuniform float seed;\nuniform float transparentEdge;\nuniform float shutter;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nfloat4 smp(float2 p, float tr) {\n    return tr > 0.5 ? texT(p) : tex(p);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat vnoise(float2 p) {\n    float2 i = floor(p);\n    float2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + float2(1.0, 0.0));\n    float c = hash21(i + float2(0.0, 1.0));\n    float d = hash21(i + float2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nfloat4 shot(float2 coord, float T) {\n    float t = T * frequency;\n    float2 o = float2(vnoise(float2(t, seed)) - 0.5, vnoise(float2(t + 31.7, seed + 9.0)) - 0.5) * 2.0;\n    float2 o2 = float2(vnoise(float2(t * 3.7, seed + 2.0)) - 0.5, vnoise(float2(t * 3.7 + 9.1, seed + 6.0)) - 0.5) * 2.0;\n    o = mix(o, o + o2, roughness);\n    float rot = (vnoise(float2(t * 0.9 + 17.0, seed)) - 0.5) * 2.0 * radians(rotation);\n    float z = 1.0 + (vnoise(float2(t * 1.1 + 5.0, seed)) - 0.5) * 2.0 * zoomShake;\n    float2 ctr = size * 0.5;\n    float2 q = ctr + rot2(coord - ctr - o * amplitude, -rot) / z;\n    return smp(q, transparentEdge);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 acc = float4(0.0);\n    for (int i = 0; i < 8; i++) {\n        acc += shot(coord, time - shutter * 0.04 * float(i) / 7.0);\n    }\n    return fin(c, acc / 8.0, opacity);\n}\n"
+}

@@ -1,0 +1,75 @@
+{
+  "id": "lensblurbokeh",
+  "name": "Lens Blur Bokeh",
+  "category": "blur",
+  "description": "Camera style bokeh with a polygonal aperture, highlight boost and rotation.",
+  "params": [
+    {
+      "id": "radius",
+      "label": "Radius",
+      "type": "float",
+      "default": 18,
+      "min": 0,
+      "max": 80,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "blades",
+      "label": "Aperture Blades",
+      "type": "float",
+      "default": 6,
+      "min": 0,
+      "max": 8,
+      "step": 1
+    },
+    {
+      "id": "rotation",
+      "label": "Rotation",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "hiCut",
+      "label": "Highlight Cutoff",
+      "type": "float",
+      "default": 0.7,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "highlightGain",
+      "label": "Highlight Gain",
+      "type": "float",
+      "default": 1.5,
+      "min": 0,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float radius;\nuniform float blades;\nuniform float rotation;\nuniform float hiCut;\nuniform float highlightGain;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 acc = float4(0.0);\n    float ws = 0.0;\n    for (int i = 0; i < 32; i++) {\n        float fi = float(i) + 0.5;\n        float r = sqrt(fi / 32.0);\n        float a = fi * 2.3999632 + radians(rotation);\n        float shape = 1.0;\n        if (blades >= 3.0) {\n            float sector = 6.2831853 / blades;\n            float am = mod(a, sector) - sector * 0.5;\n            shape = cos(3.1415927 / blades) / cos(am);\n        }\n        float4 s4 = tex(coord + float2(cos(a), sin(a)) * r * shape * radius);\n        float w = 1.0 + max(luma(unp(s4)) - hiCut, 0.0) * highlightGain * 4.0;\n        acc += s4 * w;\n        ws += w;\n    }\n    return fin(c, mix(c, acc / ws, amount), opacity);\n}\n"
+}

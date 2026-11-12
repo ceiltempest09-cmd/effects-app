@@ -1,0 +1,68 @@
+{
+  "id": "duotonepro",
+  "name": "Duotone Pro",
+  "category": "color",
+  "description": "Two colour toning with contrast, brightness and gamma control over the mapping.",
+  "params": [
+    {
+      "id": "darkColor",
+      "label": "Dark Color",
+      "type": "color",
+      "default": "#14143c"
+    },
+    {
+      "id": "lightColor",
+      "label": "Light Color",
+      "type": "color",
+      "default": "#ffd2a0"
+    },
+    {
+      "id": "contrast",
+      "label": "Contrast",
+      "type": "float",
+      "default": 1.2,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "brightness",
+      "label": "Brightness",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "gamma",
+      "label": "Gamma",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nlayout(color) uniform half4 darkColor;\nlayout(color) uniform half4 lightColor;\nuniform float contrast;\nuniform float brightness;\nuniform float gamma;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float t = saturate((luma(s) - 0.5) * contrast + 0.5 + brightness);\n    t = pow(t, 1.0 / max(gamma, 0.01));\n    float3 o = mix(s, mix(float3(darkColor.rgb), float3(lightColor.rgb), t), amount);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

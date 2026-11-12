@@ -1,0 +1,151 @@
+{
+  "id": "aeglow",
+  "name": "Glow (After Effects Style)",
+  "category": "stylize",
+  "description": "Threshold based glow with a tight core and a wide halo, A/B colour ramp, glow operation and composite modes like After Effects.",
+  "params": [
+    {
+      "id": "threshold",
+      "label": "Glow Threshold",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "blur",
+      "label": "Glow Radius",
+      "type": "float",
+      "default": 40,
+      "min": 0,
+      "max": 300,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "intensity",
+      "label": "Glow Intensity",
+      "type": "float",
+      "default": 1.2,
+      "min": 0,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "haloRadius",
+      "label": "Halo Radius",
+      "type": "float",
+      "default": 90,
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "haloAmount",
+      "label": "Halo Amount",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "colors",
+      "label": "Glow Colors",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Original Colors",
+        "A & B Colors"
+      ]
+    },
+    {
+      "id": "colorA",
+      "label": "Color A",
+      "type": "color",
+      "default": "#ffb040",
+      "when": {
+        "colors": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "colorB",
+      "label": "Color B",
+      "type": "color",
+      "default": "#ff2a70",
+      "when": {
+        "colors": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "colorRange",
+      "label": "Color Range",
+      "type": "float",
+      "default": 2,
+      "min": 0.5,
+      "max": 6,
+      "step": 0.01,
+      "when": {
+        "colors": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "glowSat",
+      "label": "Glow Saturation",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "blend",
+      "label": "Glow Operation",
+      "type": "choice",
+      "default": 1,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    },
+    {
+      "id": "comp",
+      "label": "Composite",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "On Top",
+        "Behind",
+        "Glow Only"
+      ]
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader bright;\nuniform float2 size;\nuniform float time;\nuniform float threshold;\nuniform float blur;\nuniform float intensity;\nuniform float haloRadius;\nuniform float haloAmount;\nuniform float colors;\nlayout(color) uniform half4 colorA;\nlayout(color) uniform half4 colorB;\nuniform float colorRange;\nuniform float glowSat;\nuniform float blend;\nuniform float comp;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 sat3(float3 c, float s) {\n    return mix(float3(dot(c, float3(0.2126, 0.7152, 0.0722))), c, s);\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 g = float4(bright.eval(coord));\n    float4 halo = float4(0.0);\n    for (int i = 0; i < 8; i++) {\n        float a = float(i) * 0.7853982;\n        halo += float4(bright.eval(clamp(coord + float2(cos(a), sin(a)) * haloRadius, float2(0.0), size)));\n    }\n    g = g + halo * 0.125 * haloAmount;\n    float gl = luma(g.rgb);\n    float3 gc = colors < 0.5 ? g.rgb : mix(float3(colorA.rgb), float3(colorB.rgb), saturate(gl * colorRange)) * gl;\n    gc = sat3(gc, glowSat) * intensity;\n    float ga = g.a * intensity;\n    float4 G = float4(gc, saturate(ga));\n    float4 r = G;\n    if (comp < 0.5) {\n        float3 base = unp(c);\n        float3 gS = gc / max(ga, 0.0001);\n        float3 o = mix(base, blendm(base, gS, blend), ga);\n        float a = max(c.a, saturate(ga));\n        r = float4(max(o, float3(0.0)) * a, a);\n    } else if (comp < 1.5) {\n        r = G + c * (1.0 - G.a);\n    }\n    return fin(c, r, opacity);\n}\n"
+}

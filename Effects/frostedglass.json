@@ -1,0 +1,74 @@
+{
+  "id": "frostedglass",
+  "name": "Frosted Glass",
+  "category": "blur",
+  "description": "Blur with random scattering and tint, like frosted or bathroom glass.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Blur",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 80,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "scatter",
+      "label": "Scatter",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "grain",
+      "label": "Grain Size",
+      "type": "float",
+      "default": 2,
+      "min": 1,
+      "max": 20,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "tint",
+      "label": "Tint",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "id": "tintAmount",
+      "label": "Tint Amount",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "brightness",
+      "label": "Brightness",
+      "type": "float",
+      "default": 0,
+      "min": -0.3,
+      "max": 0.3,
+      "step": 0.005
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nuniform float scatter;\nuniform float grain;\nlayout(color) uniform half4 tint;\nuniform float tintAmount;\nuniform float brightness;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat2 hash22(float2 p) {\n    return float2(hash21(p), hash21(p + float2(17.31, 5.17)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 jit = (hash22(floor(coord / max(grain, 1.0))) - 0.5) * scatter;\n    float4 b = float4(blurred.eval(clamp(coord + jit, float2(0.0), size)));\n    float3 rgb = mix(b.rgb, float3(tint.rgb) * b.a, tintAmount) + brightness * b.a;\n    return fin(c, float4(max(rgb, float3(0.0)), b.a), opacity);\n}\n"
+}

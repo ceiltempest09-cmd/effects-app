@@ -1,0 +1,80 @@
+{
+  "id": "dropshadowpro",
+  "name": "Drop Shadow Pro",
+  "category": "stylize",
+  "description": "Soft shadow with blur, offset, light angle, spread, colour and opacity, or shadow only.",
+  "params": [
+    {
+      "id": "blur",
+      "label": "Softness",
+      "type": "float",
+      "default": 12,
+      "min": 0,
+      "max": 80,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "shadowColor",
+      "label": "Shadow Color",
+      "type": "color",
+      "default": "#000000"
+    },
+    {
+      "id": "shadowOpacity",
+      "label": "Shadow Opacity",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "offsetDist",
+      "label": "Distance",
+      "type": "float",
+      "default": 14,
+      "min": 0,
+      "max": 200,
+      "step": 0.5,
+      "pixels": true
+    },
+    {
+      "id": "angle",
+      "label": "Light Angle",
+      "type": "angle",
+      "default": 135,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "spread",
+      "label": "Spread",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "shadowOnly",
+      "label": "Shadow Only",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform shader blurred;\nuniform float2 size;\nuniform float time;\nuniform float blur;\nlayout(color) uniform half4 shadowColor;\nuniform float shadowOpacity;\nuniform float offsetDist;\nuniform float angle;\nuniform float spread;\nuniform float shadowOnly;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 off = float2(cos(radians(angle)), sin(radians(angle))) * offsetDist;\n    float sa = float4(blurred.eval(clamp(coord - off, float2(0.0), size))).a;\n    sa = saturate(sa * (1.0 + spread * 4.0)) * shadowOpacity;\n    float4 shadow = float4(float3(shadowColor.rgb) * sa, sa);\n    float4 r = shadowOnly > 0.5 ? shadow : c + shadow * (1.0 - c.a);\n    return fin(c, r, opacity);\n}\n"
+}

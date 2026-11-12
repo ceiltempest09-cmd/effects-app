@@ -1,0 +1,94 @@
+{
+  "id": "dustscratches",
+  "name": "Dust & Scratches",
+  "category": "noise",
+  "description": "Film dust specks and vertical scratches with density, size, colour and flicker rate.",
+  "params": [
+    {
+      "id": "dustAmount",
+      "label": "Dust Amount",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "dustSize",
+      "label": "Dust Size",
+      "type": "float",
+      "default": 2,
+      "min": 0.5,
+      "max": 8,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "darkSpecks",
+      "label": "Dark Specks",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "scratchAmount",
+      "label": "Scratch Amount",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "scratchWidth",
+      "label": "Scratch Width",
+      "type": "float",
+      "default": 1,
+      "min": 0.4,
+      "max": 4,
+      "step": 0.05,
+      "pixels": true
+    },
+    {
+      "id": "dustColor",
+      "label": "Light Color",
+      "type": "color",
+      "default": "#fff6e0"
+    },
+    {
+      "id": "fps",
+      "label": "Flicker Rate",
+      "type": "float",
+      "default": 12,
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "unit": "fps"
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float dustAmount;\nuniform float dustSize;\nuniform float darkSpecks;\nuniform float scratchAmount;\nuniform float scratchWidth;\nlayout(color) uniform half4 dustColor;\nuniform float fps;\nuniform float seed;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat2 hash22(float2 p) {\n    return float2(hash21(p), hash21(p + float2(17.31, 5.17)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float t = floor(time * fps) + seed * 3.7;\n    float cellS = dustSize * 10.0;\n    float2 g = floor(coord / cellS);\n    float2 rp = (hash22(g + t) * 0.7 + 0.15) * cellS + g * cellS;\n    float live = step(1.0 - dustAmount * 0.35, hash21(g * 1.31 + t * 2.0));\n    float rad = dustSize * (0.5 + hash21(g + t + 4.2));\n    float dust = (1.0 - smoothstep(rad * 0.6, rad, length(coord - rp))) * live;\n    float dark = step(1.0 - darkSpecks, hash21(g * 0.7 + t));\n    float scr = 0.0;\n    for (int k = 0; k < 4; k++) {\n        float fk = float(k);\n        float x = hash21(float2(t * 1.7 + fk, 3.1)) * size.x;\n        float on = step(1.0 - scratchAmount * 0.6, hash21(float2(t + fk * 5.3, 8.9)));\n        float y0 = hash21(float2(t + fk, 2.2)) * size.y;\n        float len = (0.2 + 0.6 * hash21(float2(t, fk + 7.7))) * size.y;\n        float lineM = 1.0 - smoothstep(0.0, scratchWidth, abs(coord.x - x + sin(coord.y * 0.02 + fk) * 2.0));\n        float within = step(y0, coord.y) * step(coord.y, y0 + len);\n        scr = max(scr, lineM * on * within);\n    }\n    float3 o = s;\n    o = mix(o, float3(dustColor.rgb), dust * (1.0 - dark));\n    o = mix(o, o * 0.1, dust * dark);\n    o = mix(o, float3(dustColor.rgb), scr * 0.8);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), opacity);\n}\n"
+}

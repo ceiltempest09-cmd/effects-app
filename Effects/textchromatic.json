@@ -1,0 +1,79 @@
+{
+  "id": "textchromatic",
+  "name": "Text Chromatic Split",
+  "category": "text",
+  "description": "RGB split, anaglyph 3D or glitch jitter on text with offset, angle and update rate.",
+  "params": [
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "RGB Split",
+        "Anaglyph 3D",
+        "Glitch Jitter"
+      ]
+    },
+    {
+      "id": "offsetPx",
+      "label": "Offset",
+      "type": "float",
+      "default": 6,
+      "min": 0,
+      "max": 60,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "angle",
+      "label": "Angle",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "jitterAmt",
+      "label": "Jitter",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true,
+      "when": {
+        "mode": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "rate",
+      "label": "Jitter Rate",
+      "type": "float",
+      "default": 12,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "fps",
+      "when": {
+        "mode": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float mode;\nuniform float offsetPx;\nuniform float angle;\nuniform float jitterAmt;\nuniform float rate;\nuniform float opacity;\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nhalf4 main(float2 coord) {\n    float4 c = texT(coord);\n    float2 off = float2(cos(radians(angle)), sin(radians(angle))) * offsetPx;\n    if (mode > 1.5) {\n        float t = floor(time * rate);\n        off *= 1.0 + (hash21(float2(t, floor(coord.y / 8.0))) - 0.5) * 2.0 * jitterAmt * 3.0;\n    }\n    float4 cr = texT(coord + off);\n    float4 cg = texT(coord);\n    float4 cb = texT(coord - off);\n    float4 r = float4(cr.r, cg.g, cb.b, max(max(cr.a, cg.a), cb.a));\n    if (mode > 0.5 && mode < 1.5) r = float4(cr.r, cb.g, cb.b, max(cr.a, cb.a));\n    return fin(c, r, opacity);\n}\n"
+}

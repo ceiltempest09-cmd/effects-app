@@ -1,0 +1,79 @@
+{
+  "id": "slideloop",
+  "name": "Slide Loop",
+  "category": "move",
+  "description": "Slides the layer in any direction with speed, acceleration and seamless wrapping with gaps.",
+  "params": [
+    {
+      "id": "speed",
+      "label": "Speed",
+      "type": "float",
+      "default": 120,
+      "min": -1000,
+      "max": 1000,
+      "step": 1,
+      "pixels": true,
+      "unit": "px/s"
+    },
+    {
+      "id": "angle",
+      "label": "Direction",
+      "type": "angle",
+      "default": 0,
+      "min": 0,
+      "max": 360,
+      "step": 1
+    },
+    {
+      "id": "accel",
+      "label": "Acceleration",
+      "type": "float",
+      "default": 0,
+      "min": -1,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "id": "wrap",
+      "label": "Wrap Around",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "gapBetween",
+      "label": "Wrap Gap",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "pixels": true,
+      "when": {
+        "wrap": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "shutter",
+      "label": "Motion Blur",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float speed;\nuniform float angle;\nuniform float accel;\nuniform float wrap;\nuniform float gapBetween;\nuniform float shutter;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat4 shot(float2 coord, float T) {\n    float2 dir = float2(cos(radians(angle)), sin(radians(angle)));\n    float off = speed * T * (1.0 + 0.5 * accel * T);\n    float2 q = coord - dir * off;\n    if (wrap > 0.5) {\n        float2 wsz = size + float2(gapBetween);\n        float2 w = mod(q, wsz);\n        float inside = step(w.x, size.x) * step(w.y, size.y);\n        return texT(w) * inside;\n    }\n    return texT(q);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 acc = float4(0.0);\n    for (int i = 0; i < 8; i++) {\n        acc += shot(coord, time - shutter * 0.04 * float(i) / 7.0);\n    }\n    return fin(c, acc / 8.0, opacity);\n}\n"
+}

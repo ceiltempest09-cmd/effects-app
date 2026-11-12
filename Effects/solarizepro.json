@@ -1,0 +1,60 @@
+{
+  "id": "solarizepro",
+  "name": "Solarize Pro",
+  "category": "color",
+  "description": "Inverts tones above a cutoff with a soft knee, per channel, on luma or on a single channel.",
+  "params": [
+    {
+      "id": "cutoff",
+      "label": "Cutoff",
+      "type": "float",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "softness",
+      "label": "Softness",
+      "type": "float",
+      "default": 0.05,
+      "min": 0,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Per Channel",
+        "Luma",
+        "Red",
+        "Green",
+        "Blue"
+      ]
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float cutoff;\nuniform float softness;\nuniform float mode;\nuniform float amount;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat3 sstep3(float e0, float e1, float3 x) {\n    return float3(smoothstep(e0, e1, x.x), smoothstep(e0, e1, x.y), smoothstep(e0, e1, x.z));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float3 inv = 1.0 - s;\n    float3 k = sstep3(cutoff - softness, cutoff + softness + 0.0001, s);\n    float3 o = mix(s, inv, k);\n    if (mode > 0.5 && mode < 1.5) {\n        float kl = smoothstep(cutoff - softness, cutoff + softness + 0.0001, luma(s));\n        o = mix(s, inv, kl);\n    } else if (mode > 1.5) {\n        float3 m = mode < 2.5 ? float3(1.0, 0.0, 0.0) : (mode < 3.5 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0));\n        o = mix(s, o, m);\n    }\n    o = mix(s, o, amount);\n    return fin(c, float4(saturate(o) * c.a, c.a), opacity);\n}\n"
+}

@@ -1,0 +1,104 @@
+{
+  "id": "voronoicells",
+  "name": "Voronoi Cells",
+  "category": "noise",
+  "description": "Cell patterns: random colours, image mosaic, edges or distance, with jitter, animation and blend mode.",
+  "params": [
+    {
+      "id": "cellSize",
+      "label": "Cell Size",
+      "type": "float",
+      "default": 80,
+      "min": 10,
+      "max": 400,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "jitter",
+      "label": "Jitter",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Random Color",
+        "Image Color",
+        "Edges",
+        "Distance"
+      ]
+    },
+    {
+      "id": "edgeWidth",
+      "label": "Edge Width",
+      "type": "float",
+      "default": 0.1,
+      "min": 0.005,
+      "max": 0.5,
+      "step": 0.005,
+      "when": {
+        "mode": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "speed",
+      "label": "Animation",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 3,
+      "step": 0.01
+    },
+    {
+      "id": "colorA",
+      "label": "Color A",
+      "type": "color",
+      "default": "#101830"
+    },
+    {
+      "id": "colorB",
+      "label": "Color B",
+      "type": "color",
+      "default": "#6ab0ff"
+    },
+    {
+      "id": "blend",
+      "label": "Blend Mode",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Normal",
+        "Add",
+        "Screen",
+        "Multiply",
+        "Overlay",
+        "Soft Light",
+        "Lighten",
+        "Darken",
+        "Difference",
+        "Color Dodge"
+      ]
+    },
+    {
+      "id": "amount",
+      "label": "Amount",
+      "type": "float",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float cellSize;\nuniform float jitter;\nuniform float mode;\nuniform float edgeWidth;\nuniform float speed;\nlayout(color) uniform half4 colorA;\nlayout(color) uniform half4 colorB;\nuniform float blend;\nuniform float amount;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nfloat luma(float3 c) {\n    return dot(c, float3(0.2126, 0.7152, 0.0722));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat2 hash22(float2 p) {\n    return float2(hash21(p), hash21(p + float2(17.31, 5.17)));\n}\nfloat3 blendm(float3 b, float3 s, float m) {\n    if (m < 0.5) return s;\n    if (m < 1.5) return b + s;\n    if (m < 2.5) return 1.0 - (1.0 - b) * (1.0 - s);\n    if (m < 3.5) return b * s;\n    if (m < 4.5) return mix(2.0 * b * s, 1.0 - 2.0 * (1.0 - b) * (1.0 - s), step(float3(0.5), b));\n    if (m < 5.5) return (1.0 - 2.0 * s) * b * b + 2.0 * s * b;\n    if (m < 6.5) return max(b, s);\n    if (m < 7.5) return min(b, s);\n    if (m < 8.5) return abs(b - s);\n    return b / max(1.0 - s, 0.001);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float3 s = unp(c);\n    float2 p = coord / max(cellSize, 1.0);\n    float2 ip = floor(p);\n    float2 fp = fract(p);\n    float d1 = 8.0;\n    float d2 = 8.0;\n    float2 id1 = float2(0.0);\n    for (int j = 0; j < 3; j++) {\n        for (int i = 0; i < 3; i++) {\n            float2 g = float2(float(i) - 1.0, float(j) - 1.0);\n            float2 o = hash22(ip + g);\n            o = 0.5 + 0.5 * sin(time * speed + 6.2831853 * o);\n            o = mix(float2(0.5), o, jitter);\n            float2 r = g + o - fp;\n            float d = dot(r, r);\n            if (d < d1) {\n                d2 = d1;\n                d1 = d;\n                id1 = ip + g;\n            } else if (d < d2) {\n                d2 = d;\n            }\n        }\n    }\n    float edge = sqrt(d2) - sqrt(d1);\n    float3 layer = mix(float3(colorA.rgb), float3(colorB.rgb), hash21(id1));\n    if (mode > 0.5 && mode < 1.5) layer = unp(tex((id1 + 0.5) * cellSize));\n    else if (mode > 1.5 && mode < 2.5) layer = mix(float3(colorB.rgb), float3(colorA.rgb), smoothstep(0.0, edgeWidth, edge));\n    else if (mode > 2.5) layer = mix(float3(colorA.rgb), float3(colorB.rgb), saturate(sqrt(d1)));\n    float3 o = mix(s, blendm(s, layer, blend), amount);\n    return fin(c, float4(max(o, float3(0.0)) * c.a, c.a), 1.0);\n}\n"
+}

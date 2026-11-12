@@ -1,0 +1,108 @@
+{
+  "id": "beatzoomblur",
+  "name": "Beat Zoom Blur",
+  "category": "beat",
+  "description": "Radial zoom blur that bursts on the beat, with focus radius and gain.",
+  "params": [
+    {
+      "id": "center",
+      "label": "Center",
+      "type": "point",
+      "default": [
+        0.5,
+        0.5
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "amount",
+      "label": "Blur Amount",
+      "type": "float",
+      "default": 0.3,
+      "min": 0,
+      "max": 1,
+      "step": 0.005,
+      "percent": true
+    },
+    {
+      "id": "curve",
+      "label": "Pulse Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.3,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "focusRadius",
+      "label": "Sharp Radius",
+      "type": "float",
+      "default": 0.1,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.01
+    },
+    {
+      "id": "gain",
+      "label": "Brightness Gain",
+      "type": "float",
+      "default": 1,
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "decay",
+      "label": "Decay",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 2,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "beats",
+      "label": "Beats",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Every Beat",
+        "Every 2nd Beat",
+        "Every 4th Beat"
+      ]
+    },
+    {
+      "id": "offset",
+      "label": "Beat Offset",
+      "type": "float",
+      "default": 0,
+      "min": -5,
+      "max": 5,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "bpm",
+      "label": "BPM",
+      "type": "float",
+      "default": 120,
+      "min": 30,
+      "max": 240,
+      "step": 1
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float beat;\nuniform float2 center;\nuniform float amount;\nuniform float curve;\nuniform float focusRadius;\nuniform float gain;\nuniform float opacity;\nuniform float decay;\nuniform float beats;\nuniform float offset;\nuniform float bpm;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float e = pow(saturate(beat), curve);\n    float2 ctr = center * size;\n    float2 d = coord - ctr;\n    float mask = smoothstep(focusRadius, focusRadius + 0.5, length(d) / (length(size) * 0.5));\n    float4 acc = float4(0.0);\n    for (int i = 0; i < 12; i++) {\n        float s = 1.0 - amount * e * mask * (float(i) / 11.0);\n        acc += tex(ctr + d * s);\n    }\n    acc = acc / 12.0;\n    return fin(c, float4(acc.rgb * mix(1.0, gain, e), acc.a), opacity);\n}\n"
+}

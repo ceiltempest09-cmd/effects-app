@@ -1,0 +1,92 @@
+{
+  "id": "driftfloat",
+  "name": "Drift & Float",
+  "category": "move",
+  "description": "Gentle floating with vertical bobbing, sideways sway and tilt.",
+  "params": [
+    {
+      "id": "bobAmp",
+      "label": "Bob Height",
+      "type": "float",
+      "default": 14,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "bobSpeed",
+      "label": "Bob Speed",
+      "type": "float",
+      "default": 0.6,
+      "min": 0,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "swayAmp",
+      "label": "Sway",
+      "type": "float",
+      "default": 10,
+      "min": 0,
+      "max": 200,
+      "step": 0.1,
+      "pixels": true
+    },
+    {
+      "id": "swaySpeed",
+      "label": "Sway Speed",
+      "type": "float",
+      "default": 0.35,
+      "min": 0,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "tilt",
+      "label": "Tilt",
+      "type": "float",
+      "default": 1.5,
+      "min": 0,
+      "max": 20,
+      "step": 0.05,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "seed",
+      "label": "Random Seed",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "transparentEdge",
+      "label": "Transparent Edges",
+      "type": "switch",
+      "default": 1
+    },
+    {
+      "id": "shutter",
+      "label": "Motion Blur",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float bobAmp;\nuniform float bobSpeed;\nuniform float swayAmp;\nuniform float swaySpeed;\nuniform float tilt;\nuniform float seed;\nuniform float transparentEdge;\nuniform float shutter;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nfloat4 smp(float2 p, float tr) {\n    return tr > 0.5 ? texT(p) : tex(p);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat hash21(float2 p) {\n    return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);\n}\nfloat vnoise(float2 p) {\n    float2 i = floor(p);\n    float2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + float2(1.0, 0.0));\n    float c = hash21(i + float2(0.0, 1.0));\n    float d = hash21(i + float2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nfloat4 shot(float2 coord, float T) {\n    float bob = sin(T * bobSpeed * 6.2831853) * bobAmp + (vnoise(float2(T * bobSpeed, seed)) - 0.5) * bobAmp * 0.6;\n    float sway = (vnoise(float2(T * swaySpeed, seed + 7.0)) - 0.5) * 2.0 * swayAmp;\n    float rot = (vnoise(float2(T * swaySpeed * 0.8, seed + 13.0)) - 0.5) * 2.0 * radians(tilt);\n    float2 ctr = size * 0.5;\n    float2 q = ctr + rot2(coord - ctr - float2(sway, bob), -rot);\n    return smp(q, transparentEdge);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float4 acc = float4(0.0);\n    for (int i = 0; i < 8; i++) {\n        acc += shot(coord, time - shutter * 0.04 * float(i) / 7.0);\n    }\n    return fin(c, acc / 8.0, opacity);\n}\n"
+}

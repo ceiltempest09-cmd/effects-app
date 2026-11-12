@@ -1,0 +1,74 @@
+{
+  "id": "pixelmosaicpro",
+  "name": "Pixel Mosaic Pro",
+  "category": "stylize",
+  "description": "Mosaic with square, dot or diamond cells, aspect, gaps and colour level reduction.",
+  "params": [
+    {
+      "id": "cellSize",
+      "label": "Cell Size",
+      "type": "float",
+      "default": 14,
+      "min": 1,
+      "max": 200,
+      "step": 1,
+      "pixels": true
+    },
+    {
+      "id": "aspect",
+      "label": "Aspect",
+      "type": "float",
+      "default": 1,
+      "min": 0.2,
+      "max": 5,
+      "step": 0.01
+    },
+    {
+      "id": "shape",
+      "label": "Cell Shape",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Square",
+        "Circle Dots",
+        "Diamond"
+      ]
+    },
+    {
+      "id": "gap",
+      "label": "Gap",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 0.8,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "gapColor",
+      "label": "Gap Color",
+      "type": "color",
+      "default": "#000000"
+    },
+    {
+      "id": "colorLevels",
+      "label": "Color Levels (0 = off)",
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 64,
+      "step": 1
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float cellSize;\nuniform float aspect;\nuniform float shape;\nuniform float gap;\nlayout(color) uniform half4 gapColor;\nuniform float colorLevels;\nuniform float opacity;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat3 unp(float4 c) {\n    return c.rgb / max(c.a, 0.0001);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float2 cell = float2(max(cellSize * aspect, 1.0), max(cellSize, 1.0));\n    float2 g = coord / cell;\n    float4 px = tex((floor(g) + 0.5) * cell);\n    float2 lp = (fract(g) - 0.5) * 2.0;\n    float edge = 1.0 - gap;\n    float m = step(max(abs(lp.x), abs(lp.y)), edge);\n    if (shape > 0.5 && shape < 1.5) m = 1.0 - smoothstep(edge - 0.1, edge, length(lp));\n    else if (shape > 1.5) m = 1.0 - smoothstep(edge * 1.4 - 0.1, edge * 1.4, abs(lp.x) + abs(lp.y));\n    float3 s = unp(px);\n    if (colorLevels >= 2.0) s = floor(s * (colorLevels - 1.0) + 0.5) / (colorLevels - 1.0);\n    float3 col = mix(float3(gapColor.rgb), s, m);\n    return fin(c, float4(col * px.a, px.a), opacity);\n}\n"
+}

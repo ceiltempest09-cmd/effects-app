@@ -1,0 +1,114 @@
+{
+  "id": "beatsquash",
+  "name": "Beat Squash & Stretch",
+  "category": "beat",
+  "description": "Squashes and stretches the layer on the beat with separate horizontal and vertical amounts.",
+  "params": [
+    {
+      "id": "amountX",
+      "label": "Horizontal",
+      "type": "float",
+      "default": 0.12,
+      "min": -0.5,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "amountY",
+      "label": "Vertical",
+      "type": "float",
+      "default": -0.12,
+      "min": -0.5,
+      "max": 0.5,
+      "step": 0.005
+    },
+    {
+      "id": "curve",
+      "label": "Pulse Curve",
+      "type": "float",
+      "default": 1,
+      "min": 0.3,
+      "max": 4,
+      "step": 0.01
+    },
+    {
+      "id": "anchor",
+      "label": "Anchor",
+      "type": "point",
+      "default": [
+        0.5,
+        1.0
+      ],
+      "min": -1.0,
+      "max": 2.0,
+      "step": 0.001
+    },
+    {
+      "id": "rotate",
+      "label": "Rotation",
+      "type": "float",
+      "default": 0,
+      "min": -20,
+      "max": 20,
+      "step": 0.1,
+      "unit": "\u00b0"
+    },
+    {
+      "id": "transparentEdge",
+      "label": "Transparent Edges",
+      "type": "switch",
+      "default": 0
+    },
+    {
+      "id": "opacity",
+      "label": "Opacity",
+      "type": "float",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "percent": true
+    },
+    {
+      "id": "decay",
+      "label": "Decay",
+      "type": "float",
+      "default": 0.4,
+      "min": 0,
+      "max": 2,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "beats",
+      "label": "Beats",
+      "type": "choice",
+      "default": 0,
+      "options": [
+        "Every Beat",
+        "Every 2nd Beat",
+        "Every 4th Beat"
+      ]
+    },
+    {
+      "id": "offset",
+      "label": "Beat Offset",
+      "type": "float",
+      "default": 0,
+      "min": -5,
+      "max": 5,
+      "step": 0.01,
+      "unit": "s"
+    },
+    {
+      "id": "bpm",
+      "label": "BPM",
+      "type": "float",
+      "default": 120,
+      "min": 30,
+      "max": 240,
+      "step": 1
+    }
+  ],
+  "sksl": "uniform shader image;\nuniform float2 size;\nuniform float time;\nuniform float beat;\nuniform float amountX;\nuniform float amountY;\nuniform float curve;\nuniform float2 anchor;\nuniform float rotate;\nuniform float transparentEdge;\nuniform float opacity;\nuniform float decay;\nuniform float beats;\nuniform float offset;\nuniform float bpm;\nfloat4 tex(float2 p) {\n    return float4(image.eval(clamp(p, float2(0.0), size)));\n}\nfloat4 texT(float2 p) {\n    return float4(image.eval(p));\n}\nfloat4 smp(float2 p, float tr) {\n    return tr > 0.5 ? texT(p) : tex(p);\n}\nhalf4 fin(float4 o, float4 r, float op) {\n    return half4(mix(o, r, saturate(op)));\n}\nfloat2 rot2(float2 p, float a) {\n    float s = sin(a);\n    float c = cos(a);\n    return float2(p.x * c - p.y * s, p.x * s + p.y * c);\n}\nhalf4 main(float2 coord) {\n    float4 c = tex(coord);\n    float e = pow(saturate(beat), curve);\n    float2 anc = anchor * size;\n    float2 sc = max(float2(1.0) + float2(amountX, amountY) * e, float2(0.1));\n    float2 q = anc + rot2(coord - anc, -radians(rotate) * e) / sc;\n    return fin(c, smp(q, transparentEdge), opacity);\n}\n"
+}

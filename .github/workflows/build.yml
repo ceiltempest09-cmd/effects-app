@@ -24,7 +24,7 @@ jobs:
 
       - name: Unpack Effects.zip
         working-directory: .
-        run: unzip -qq Effects.zip
+        run: unzip -oqq Effects.zip
 
       - name: Optimize native code in debug build
         working-directory: .

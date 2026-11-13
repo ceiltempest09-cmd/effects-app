@@ -37,23 +37,14 @@ jobs:
           PY
           grep -q CMAKE_BUILD_TYPE Effects/app/build.gradle.kts
 
-      - name: Add effects from the repo's effects folder
+      - name: Overlay patched source files
         working-directory: .
         run: |
-          if [ -d effects ]; then
-            python3 - <<'PY'
-          import json, glob, shutil
-          dst = 'Effects/shared/assets/effects'
-          idx = json.load(open(dst + '/index.json'))
-          for f in sorted(glob.glob('effects/**/*.json', recursive=True)):
-              d = json.load(open(f))
-              shutil.copy(f, dst)
-              if d['id'] not in idx:
-                  idx.append(d['id'])
-              print('added', d['id'])
-          json.dump(idx, open(dst + '/index.json', 'w'), indent=1)
-          PY
-          fi
+          if [ -d overlay ]; then cp -r overlay/. .; fi
+
+      - name: Add effects (effects/ json = Default, glsl/ = Vibrant HQS, emx/ = RayTraced VFX)
+        working-directory: .
+        run: python3 tools/fxconvert.py
 
       - name: Add thumbnails from the repo's thumbs folder
         working-directory: .
@@ -127,4 +118,5 @@ jobs:
             Effects/app/build/reports
             Effects/app/.cxx/**/*.txt
             Effects/app/.cxx/**/*.log
+
             

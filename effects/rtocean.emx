@@ -1,0 +1,45 @@
+// @id rtocean
+// @name Ray Traced 3D Ocean
+// @category 3d
+// @description A ray-marched animated ocean with layered rolling waves, deep-water shading, crest foam and reflective highlights.
+// @param waveScale float 1.0 min=0.3 max=2.5 step=0.01 label="Wave Scale"
+// @param waveHeight float 0.16 min=0.02 max=0.42 step=0.005 label="Wave Height"
+// @param waveSpeed float 0.55 min=0 max=2 step=0.01 label="Wave Speed"
+// @param waveDetail float 1.0 min=0 max=2 step=0.01 label="Wave Detail"
+// @param waterColor color #087fa8 label="Water Color"
+// @param foamColor color #d9f8ff label="Foam Color"
+// @param reflectivity float 0.72 min=0 max=1 step=0.01 percent=1 label="Water Reflectivity"
+
+uniform float waveScale;
+uniform float waveHeight;
+uniform float waveSpeed;
+uniform float waveDetail;
+uniform vec4 waterColor;
+uniform vec4 foamColor;
+uniform float reflectivity;
+
+float oceanHeight(vec2 xz) {
+    float t = time * waveSpeed;
+    vec2 p = xz * waveScale;
+    float h = 0.48 * sin(p.x * 1.15 + t) * cos(p.y * 0.82 - t * 0.72);
+    h += 0.24 * sin(p.x * 2.05 - p.y * 1.35 + t * 1.31);
+    h += 0.12 * cos(p.y * 3.1 + p.x * 1.7 - t * 1.8) * waveDetail;
+    h += 0.055 * sin(p.x * 5.2 + p.y * 3.7 + t * 2.4) * waveDetail;
+    return h * waveHeight;
+}
+
+float map(vec3 p) {
+    // Height-field SDF approximation: Y is up; waves form an effectively endless ocean.
+    return p.y - oceanHeight(p.xz);
+}
+
+vec3 material(vec3 p, vec3 n, vec2 uv, out float refl) {
+    float slope = 1.0 - clamp(n.y, 0.0, 1.0);
+    float crest = smoothstep(0.24, 0.68, slope + 0.12 * sin(p.x * 8.0 + p.z * 5.0 + time * waveSpeed));
+    float depth = 0.5 + 0.5 * sin(p.x * 0.42 + p.z * 0.31 + time * waveSpeed * 0.18);
+    vec3 deep = waterColor.rgb * (0.48 + 0.28 * depth);
+    vec3 shallow = mix(deep, vec3(0.16, 0.62, 0.72), 0.28 + 0.18 * clamp(n.y, 0.0, 1.0));
+    vec3 foam = foamColor.rgb * (0.72 + 0.28 * sin(p.x * 13.0 + p.z * 11.0 + time * waveSpeed * 2.0));
+    refl = reflectivity * (0.55 + 0.45 * clamp(n.y, 0.0, 1.0));
+    return mix(shallow, foam, crest * 0.78);
+}

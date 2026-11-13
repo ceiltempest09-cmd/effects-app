@@ -1,59 +1,39 @@
 // @id rtglow
-// @name Ray Traced Glow
+// @name RayTraced Energy Glow
 // @category 3d
-// @description A floating 3D neon energy core with animated luminous rings, reflective accents and a dark studio floor.
-// @param glowColor color #35d9ff label="Glow Color"
-// @param ringRadius float 0.82 min=0.25 max=1.5 step=0.01 label="Ring Radius"
-// @param tubeSize float 0.055 min=0.015 max=0.16 step=0.005 label="Tube Thickness"
-// @param speed float 0.35 min=0 max=2 step=0.01 label="Animation Speed"
-// @param coreSize float 0.22 min=0.05 max=0.55 step=0.01 label="Core Size"
-// @param floorOn switch 1 label="Reflective Floor"
-uniform vec4 glowColor;
-uniform float ringRadius;
-uniform float tubeSize;
-uniform float speed;
-uniform float coreSize;
-uniform float floorOn;
-
-float sdTorus(vec3 p, vec2 t) {
-    return length(vec2(length(p.xz) - t.x, p.y)) - t.y;
-}
+// @description Floating emissive 3D energy forms with bright colored surfaces and reflective response.
+// @param radius float 0.48 min=0.1 max=0.9 step=0.01 label="Core Size"
+// @param pulse float 1 min=0 max=4 step=0.01 label="Pulse Speed"
+// @param intensity float 2.2 min=0.1 max=5 step=0.01 label="Emission Intensity"
+// @param color color #55dfff label="Energy Color"
+// @param secondary color #b45cff label="Secondary Color"
+// @param orbit float 0.65 min=0 max=3 step=0.01 label="Orbit Speed"
+uniform float radius;
+uniform float pulse;
+uniform float intensity;
+uniform vec4 color;
+uniform vec4 secondary;
+uniform float orbit;
 
 float map(vec3 p) {
+    float t = time * orbit;
+    float beat = 1.0 + 0.08 * sin(time * pulse * 6.2831853);
     float d = 100.0;
-    float a = time * speed;
-    vec3 q = p;
-    q.y -= 0.05 * sin(a * 1.7);
-    d = min(d, length(q) - coreSize);
-
-    vec3 r1 = p;
-    float c1 = cos(a);
-    float s1 = sin(a);
-    r1.xz = mat2(c1, -s1, s1, c1) * r1.xz;
-    d = min(d, sdTorus(r1, vec2(ringRadius, tubeSize)));
-
-    vec3 r2 = p;
-    float a2 = a * 0.73 + 1.1;
-    r2.xy = mat2(cos(a2), -sin(a2), sin(a2), cos(a2)) * r2.xy;
-    d = min(d, sdTorus(r2, vec2(ringRadius * 0.78, tubeSize * 0.72)));
-
-    vec3 r3 = p;
-    float a3 = a * 0.51;
-    r3.yz = mat2(cos(a3), -sin(a3), sin(a3), cos(a3)) * r3.yz;
-    d = min(d, sdTorus(r3, vec2(ringRadius * 0.62, tubeSize * 0.58)));
-
-    if (floorOn > 0.5) d = min(d, p.y + 1.15);
+    for (int i = 0; i < 5; i++) {
+        float fi = float(i);
+        float a = t + fi * 1.25663706;
+        vec3 c = vec3(cos(a) * 0.85, 0.12 * sin(a * 1.7 + fi), sin(a) * 0.85);
+        float r = radius * beat * (0.55 + 0.12 * mod(fi, 3.0));
+        d = min(d, length(p - c) - r);
+    }
     return d;
 }
 
 vec3 material(vec3 p, vec3 n, vec2 uv, out float refl) {
-    if (floorOn > 0.5 && p.y < -1.13) {
-        refl = 0.72;
-        vec3 floorTex = layerOnPlane(fract(p.xz * 0.22 + 0.5) - 0.5);
-        return mix(vec3(0.012, 0.022, 0.04), floorTex, 0.16);
-    }
-    float edge = pow(1.0 - abs(dot(normalize(n), normalize(-p))), 2.0);
-    refl = 0.62;
-    vec3 base = glowColor.rgb * (0.72 + 0.28 * edge);
-    return mix(base, vec3(0.8, 0.95, 1.0), edge * 0.22);
+    float t = time * orbit;
+    float band = 0.5 + 0.5 * sin(atan(p.z, p.x) * 5.0 + p.y * 9.0 - t * 3.0);
+    vec3 col = mix(color.rgb, secondary.rgb, band);
+    float rim = pow(1.0 - abs(dot(normalize(n), normalize(vec3(0.25, 0.35, -1.0)))), 2.0);
+    refl = 0.28;
+    return col * intensity * (1.0 + rim * 0.8);
 }

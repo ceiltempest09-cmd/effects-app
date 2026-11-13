@@ -1,0 +1,49 @@
+// @id rtparticles
+// @name RayTraced 3D Particles
+// @category 3d
+// @description A volumetric field of animated 3D particle spheres at different depths with varied sizes and colors.
+// @param amount float 1 min=0.2 max=2 step=0.01 label="Particle Amount"
+// @param particleSize float 0.055 min=0.015 max=0.14 step=0.001 label="Particle Size"
+// @param speed float 0.55 min=0 max=3 step=0.01 label="Motion Speed"
+// @param spread float 1.25 min=0.3 max=2.5 step=0.01 label="Field Spread"
+// @param color color #62dfff label="Particle Color"
+// @param secondary color #b66cff label="Secondary Color"
+// @param shine float 1.6 min=0 max=4 step=0.01 label="Surface Brightness"
+uniform float amount;
+uniform float particleSize;
+uniform float speed;
+uniform float spread;
+uniform vec4 color;
+uniform vec4 secondary;
+uniform float shine;
+
+float hash1(float n) {
+    return fract(sin(n * 127.1 + 311.7) * 43758.5453);
+}
+
+float map(vec3 p) {
+    float d = 100.0;
+    for (int i = 0; i < 24; i++) {
+        float fi = float(i);
+        float h1 = hash1(fi + 1.0);
+        float h2 = hash1(fi + 17.0);
+        float h3 = hash1(fi + 39.0);
+        float z = fract(h3 + time * speed * (0.08 + h1 * 0.12));
+        vec3 c = vec3((h1 - 0.5) * 2.0 * spread,
+                      (h2 - 0.5) * 1.5 * spread,
+                      (z - 0.5) * 2.8);
+        c.x += 0.12 * sin(time * speed + fi);
+        c.y += 0.10 * cos(time * speed * 0.8 + fi * 1.7);
+        float r = particleSize * (0.45 + h2 * 1.15);
+        d = min(d, length(p - c) - r);
+    }
+    return d;
+}
+
+vec3 material(vec3 p, vec3 n, vec2 uv, out float refl) {
+    float h = 0.5 + 0.5 * sin(p.x * 7.0 + p.y * 5.0 + p.z * 6.0 + time * speed);
+    vec3 col = mix(color.rgb, secondary.rgb, h);
+    float light = 0.65 + 0.35 * max(dot(normalize(n), normalize(vec3(-0.4, 0.7, -0.6))), 0.0);
+    refl = 0.18;
+    return col * light * shine;
+}

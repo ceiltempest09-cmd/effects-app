@@ -26,6 +26,11 @@ jobs:
         working-directory: .
         run: unzip -oqq Effects.zip
 
+      - name: Unpack overlay.zip
+        working-directory: .
+        run: |
+          if [ -f overlay.zip ]; then unzip -oqq overlay.zip; fi
+
       - name: Optimize native code in debug build
         working-directory: .
         run: |

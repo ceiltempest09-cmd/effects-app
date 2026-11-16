@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Adds the repo's effect files to the app.
-  effects/**/*.json -> Default        (already worked)
-  glsl/**/*.glsl    -> Vibrant HQS    (GLSL converted to SkSL)
-  emx/**/*.emx      -> RayTraced VFX  (ray-march scene wrapped, then converted)
+  effects/**/*.json, pack/**/*.json -> Performance   (8-bit json library)
+  glsl/**/*.glsl                    -> Balance       (GLSL converted to SkSL)
+  emx/**/*.emx                      -> Heavy effects (ray-march scene wrapped, then converted)
+  aligthmotion/**/*.xml (+ thumb/)  -> Alight Motion library (xml files are bundled; the app converts them on first start)
 Run from the repo root. A bad file is skipped with a warning; the build goes on."""
 import glob, json, os, re, shlex, shutil, sys
+from xml.sax.saxutils import unescape
 
 DST = 'Effects/shared/assets/effects'
+AM_DST = 'Effects/shared/assets/alightmotion'
+AM_DIRS = ('aligthmotion', 'alightmotion')
+JSON_DIRS = ('effects', 'pack')
+LIST_FILES = ('index.json', 'releases.json', 'foreign.json')
 CATS = {
     'default': 'color blur distort stylize noise repeat key move beat 3d text other'.split(),
     'vibrant': 'glow neon liquid glitch leaks sparkle depth beat text other'.split(),
@@ -323,9 +329,19 @@ def main():
         taken.add(os.path.basename(f)[:-5])
     # Default: json files, as before
     ids = []
-    for f in sorted(glob.glob('effects/**/*.json', recursive=True)):
+    # The app's own list files, when a folder carries them (the pack/ library does): they replace the app's copy.
+    for d in JSON_DIRS:
+        for name in LIST_FILES:
+            src = os.path.join(d, name)
+            if os.path.isfile(src):
+                shutil.copy(src, os.path.join(DST, name))
+                print('replaced', name, 'from', d)
+    jsons = sorted({f for d in JSON_DIRS for f in glob.glob(d + '/**/*.json', recursive=True) if os.path.basename(f) not in LIST_FILES})
+    for f in jsons:
         try:
             d = json.load(open(f))
+            if not isinstance(d, dict) or 'id' not in d:
+                raise Bad('not an effect file (no "id")')
             shutil.copy(f, DST)
             ids.append(d['id']); taken.add(d['id'])
             print('added (default)', d['id'])
@@ -345,6 +361,132 @@ def main():
             except Exception as e:
                 warn('%s skipped: %s' % (f, e))
         add_index(pack, ids)
+    for d in AM_DIRS:
+        if os.path.isdir(d):
+            alight_motion(d)
+
+# ---------- Alight Motion library ----------
+CARD_BY_CATEGORY = {
+    'color': 'colorlight', 'light': 'colorlight', 'lighting': 'colorlight', 'glow': 'colorlight',
+    'drawing': 'drawedge', 'drawing/edge': 'drawedge', 'stylize': 'drawedge',
+    'blur': 'blur', 'distort': 'warp', 'distortion': 'warp', 'warp': 'warp', 'glitch': 'warp',
+    'procedural': 'procedural', 'generate': 'procedural', 'generative': 'procedural',
+    '3d': '3d', 'transform': 'transform', 'move': 'transform', 'move/transform': 'transform',
+    'repeat': 'repeat', 'matte': 'matte', 'mask': 'matte', 'key': 'matte',
+    'opacity': 'opacity', 'transition': 'opacity', 'text': 'text',
+}
+CARD_WORDS = [  # for files with no usable category: first match in name + tags wins
+    ('text', ('text', 'font', 'typewriter', 'subtitle', 'caption')),
+    ('blur', ('blur', 'defocus', 'bokeh', 'lensblur')),
+    ('matte', ('matte', 'chroma', 'keying', 'alpha', 'mask')),
+    ('opacity', ('opacity', 'fade', 'dissolve', 'wipe', 'transition', 'reveal', 'blink')),
+    ('repeat', ('repeat', 'tile', 'mirror', 'kaleido', 'clone', 'echo', 'mosaic')),
+    ('3d', ('3d', 'cube', 'sphere', 'perspective', 'extrude', 'skybox', 'raymarch')),
+    ('warp', ('warp', 'distort', 'wave', 'ripple', 'twist', 'bulge', 'lens', 'glitch', 'liquid', 'displace', 'swirl', 'pinch')),
+    ('transform', ('shake', 'scale', 'rotate', 'zoom', 'slide', 'move', 'transform', 'wiggle', 'shift', 'flip')),
+    ('drawedge', ('edge', 'outline', 'sketch', 'stroke', 'draw', 'cartoon', 'halftone', 'pixel', 'comic')),
+    ('colorlight', ('color', 'colour', 'glow', 'light', 'tone', 'grade', 'lut', 'bloom', 'shadow', 'exposure', 'gradient', 'bright', 'contrast', 'hue', 'vhs', 'film')),
+]
+
+def am_card(category, name, tags):
+    c = (category or '').strip().lower()
+    if c in CARD_BY_CATEGORY:
+        return CARD_BY_CATEGORY[c]
+    hay = (name + ' ' + tags).lower()
+    for card, words in CARD_WORDS:
+        if any(w in hay for w in words):
+            return card
+    return 'procedural'
+
+def am_slug(effect_id, name):
+    last = effect_id.rsplit('.', 1)[-1] if effect_id else ''
+    base = last if last.strip() else name  # the app uses the part after the last dot of the id
+    slug = re.sub(r'[^a-z0-9]+', '_', base.lower()).strip('_')
+    return slug or 'effect'
+
+def attr(tag, name):
+    m = re.search(r'\b%s="([^"]*)"' % name, tag)
+    return unescape(m.group(1)) if m else ''
+
+def set_attr(tag, name, value):
+    value = value.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;')
+    if re.search(r'\b%s="[^"]*"' % name, tag):
+        return re.sub(r'\b%s="[^"]*"' % name, lambda m: '%s="%s"' % (name, value), tag, count=1)
+    return re.sub(r'\s*(/?>)$', lambda m: ' %s="%s"%s' % (name, value, m.group(1)), tag, count=1)
+
+def norm(text):
+    return re.sub(r'[^a-z0-9]+', '', text.lower())
+
+def save_thumb(src, key):
+    out = os.path.join(DST, 'thumb', key + '.webp')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    try:
+        from PIL import Image
+        im = Image.open(src)
+        im.seek(0)
+        im = im.convert('RGBA' if 'A' in im.getbands() else 'RGB')
+        im.thumbnail((256, 256))
+        im.save(out, 'WEBP', quality=80)
+    except Exception as e:  # no Pillow or an odd file: copy it as it is (the app reads the picture by content)
+        shutil.copy(src, out)
+
+def alight_motion(root):
+    pictures = {}
+    for ext in ('webp', 'png', 'jpg', 'jpeg', 'gif'):
+        for p in glob.glob(os.path.join(root, '**', '*.' + ext), recursive=True):
+            if os.sep + 'textures' + os.sep in p or p.startswith(os.path.join(root, 'textures')):
+                continue
+            stem = os.path.splitext(os.path.basename(p))[0]
+            pictures.setdefault(stem.lower(), p)
+            pictures.setdefault(norm(stem), p)
+    os.makedirs(AM_DST, exist_ok=True)
+    slugs, index, counts, no_thumb, skipped = set(), [], {}, 0, 0
+    for f in sorted(set(glob.glob(os.path.join(root, '**', '*.xml'), recursive=True))):
+        try:
+            text = open(f, encoding='utf-8', errors='replace').read()
+            m = re.search(r'<effect\b[^>]*>', text)
+            if not m:
+                raise Bad('no <effect> tag')
+            tag = m.group(0)
+            if re.search(r'<texture\b[^>]*srcType="image"', text):
+                skipped += 1
+                warn('%s skipped: it needs an image texture, which the app does not load' % f)
+                continue
+            name, eid = attr(tag, 'name'), attr(tag, 'id')
+            slug = am_slug(eid, name)
+            n = 2
+            base = slug
+            while slug in slugs:
+                slug = '%s_%d' % (base, n); n += 1
+            slugs.add(slug)
+            if slug != base:  # two files with the same id: the app would store them as one effect
+                eid = (eid.rsplit('.', 1)[0] + '.' if '.' in eid else '') + slug
+                tag2 = set_attr(tag, 'id', eid)
+            else:
+                tag2 = tag
+            card = am_card(attr(tag, 'category'), name, attr(tag, 'tags'))
+            tag2 = set_attr(tag2, 'category', card)
+            key = 'am_' + slug
+            counts[card] = counts.get(card, 0) + 1
+            open(os.path.join(AM_DST, key + '.xml'), 'w', encoding='utf-8').write(text[:m.start()] + tag2 + text[m.end():])
+            index.append(key + '.xml')
+            thumb = attr(tag, 'thumb')
+            pic = None
+            if thumb:
+                p = os.path.join(root, thumb)
+                stem = os.path.splitext(os.path.basename(thumb))[0]
+                pic = p if os.path.isfile(p) else pictures.get(stem.lower()) or pictures.get(norm(stem))
+            pic = pic or pictures.get(base) or pictures.get(norm(name)) or pictures.get(norm(os.path.splitext(os.path.basename(f))[0]))
+            if pic:
+                save_thumb(pic, key)
+            else:
+                no_thumb += 1
+        except Exception as e:
+            warn('%s skipped: %s' % (f, e))
+    json.dump(index, open(os.path.join(AM_DST, 'index.json'), 'w'), indent=1)
+    print('added (alight motion) %d files; %d skipped (image textures); %d without a picture' % (len(index), skipped, no_thumb))
+    for card, c in sorted(counts.items()):
+        print('  %-11s %d' % (card, c))
 
 if __name__ == '__main__':
     main()

@@ -31,6 +31,11 @@ jobs:
         run: |
           if [ -f overlay.zip ]; then unzip -oqq overlay.zip; fi
 
+      - name: Set the app version from the run number
+        working-directory: .
+        run: |
+          printf 'versionName=1.0.%s\nversionCode=%s\n' "${{ github.run_number }}" "${{ github.run_number }}" > Effects/version.properties
+
       - name: Optimize native code in debug build
         working-directory: .
         run: |

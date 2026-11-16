@@ -47,7 +47,15 @@ jobs:
         run: |
           if [ -d overlay ]; then cp -r overlay/. .; fi
 
-      - name: Add effects (effects/ json = Default, glsl/ = Vibrant HQS, emx/ = RayTraced VFX)
+      - name: Unpack effect libraries (pack.zip, aligthmotion.zip, glsl.zip, emx.zip, whichever are in the repo)
+        working-directory: .
+        run: |
+          for z in pack.zip aligthmotion.zip glsl.zip emx.zip; do
+            if [ -f "$z" ]; then unzip -oqq "$z"; fi
+          done
+          pip install --quiet pillow
+
+      - name: Add effects (effects/ and pack/ json = Performance, glsl/ = Balance, emx/ = Heavy effects, aligthmotion/ = Alight Motion)
         working-directory: .
         run: python3 tools/fxconvert.py
 

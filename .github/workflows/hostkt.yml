@@ -1,0 +1,37 @@
+name: hostkt
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Effects
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack Effects.zip and overlay.zip
+        working-directory: .
+        run: |
+          unzip -oqq Effects.zip
+          if [ -f overlay.zip ]; then unzip -oqq overlay.zip && cp -r overlay/. .; fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Download Gradle (only its lib folder is used)
+        run: chmod +x gradlew && ./gradlew --version --no-daemon
+      - name: Run host Kotlin tests (graph, import, engine stage 1, shipped effects)
+        run: |
+          L=$(dirname "$(find ~/.gradle/wrapper/dists -name 'kotlin-compiler-embeddable-*.jar' | head -1)")
+          echo "GRADLE_LIB=$L"; ls "$L" | grep -i kotlin
+          GRADLE_LIB="$L" bash tests/hostkt/run.sh 2>&1 | tee /tmp/hostkt.log
+          test "${PIPESTATUS[0]}" -eq 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hostkt-log
+          path: /tmp/hostkt.log

@@ -113,10 +113,9 @@ jobs:
       - name: Use the fixed signing key
         working-directory: .
         run: |
-          if [ -f debug.keystore ]; then
-            mkdir -p ~/.android
-            cp debug.keystore ~/.android/debug.keystore
-          fi
+          test -f debug.keystore || { echo "debug.keystore missing in repo root"; exit 1; }
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
 
       - name: Build the APK
         run: |

@@ -122,6 +122,19 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
 
+      - name: Print the signing key of the APK (compare between runs; it must never change)
+        run: |
+          APK=$(ls app/build/outputs/apk/foss/debug/*.apk | head -1)
+          {
+            echo "### Signing check for $(basename "$APK")"
+            echo '```'
+            "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
+            echo "repo debug.keystore:"
+            keytool -list -keystore ~/.android/debug.keystore -storepass android 2>/dev/null | grep -i -E "androiddebugkey|fingerprint" || true
+            echo "versionCode: $(grep versionCode version.properties)"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         with:
           name: Effects-debug-apk

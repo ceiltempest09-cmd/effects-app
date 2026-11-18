@@ -5,6 +5,11 @@ on:
   push:
     branches: [main, master]
 
+env:
+  # SHA-256 of the permanent signing certificate (public value, not a secret). Every APK must carry exactly this one.
+  EXPECTED_CERT_SHA256: a5abeb52778750be8a9925477e72da5e0df7b3bb59a362a6cb39d161a3fe42b7
+  EXPECTED_APP_ID: com.effects.motion
+
 concurrency:
   group: build
   cancel-in-progress: true
@@ -110,30 +115,65 @@ jobs:
           tools/build_skia.sh
           rm -rf third_party/skia/out/android-arm64/obj
 
-      - name: Use the fixed signing key
+      - name: Apply the permanent signing config to the build file
         working-directory: .
         run: |
-          test -f debug.keystore || { echo "debug.keystore missing in repo root"; exit 1; }
-          mkdir -p ~/.android
-          cp debug.keystore ~/.android/debug.keystore
+          rm -f Effects/app/ci-debug.keystore Effects/app/debug.keystore debug.keystore
+          python3 tools/apply_signing.py Effects/app/build.gradle.kts
+          grep -q PERMANENT_SIGNING Effects/app/build.gradle.kts
+          ! grep -q 'ci-debug' Effects/app/build.gradle.kts
+
+      - name: Load the permanent signing key and check its fingerprint
+        working-directory: .
+        env:
+          KS_B64: ${{ secrets.EFFECTS_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.EFFECTS_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.EFFECTS_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.EFFECTS_KEY_PASSWORD }}
+        run: |
+          for v in KS_B64 KS_PASS KEY_ALIAS; do
+            [ -n "${!v}" ] || { echo "::error::GitHub secret for $v is missing (EFFECTS_KEYSTORE_BASE64 / EFFECTS_KEYSTORE_PASSWORD / EFFECTS_KEY_ALIAS). Refusing to build with any other key."; exit 1; }
+          done
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/effects.jks"
+          GOT=$(keytool -list -v -keystore "$RUNNER_TEMP/effects.jks" -storepass "$KS_PASS" -alias "$KEY_ALIAS" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr -d ':' | tr 'A-Z' 'a-z')
+          echo "keystore certificate SHA-256: $GOT"
+          echo "expected                    : $EXPECTED_CERT_SHA256"
+          [ "$GOT" = "$EXPECTED_CERT_SHA256" ] || { echo "::error::The keystore in the secret is NOT the permanent key. Build stopped."; exit 1; }
+          {
+            echo "EFFECTS_KEYSTORE_PATH=$RUNNER_TEMP/effects.jks"
+            echo "EFFECTS_KEYSTORE_PASSWORD=$KS_PASS"
+            echo "EFFECTS_KEY_ALIAS=$KEY_ALIAS"
+            echo "EFFECTS_KEY_PASSWORD=${KEY_PASS:-$KS_PASS}"
+          } >> "$GITHUB_ENV"
 
       - name: Build the APK
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
 
-      - name: Print the signing key of the APK (compare between runs; it must never change)
+      - name: Verify the APK (certificate, app id, version). Fails the build on any mismatch
         run: |
           APK=$(ls app/build/outputs/apk/foss/debug/*.apk | head -1)
+          BT="$ANDROID_HOME/build-tools/37.0.0"
+          CERTS=$("$BT/apksigner" verify --verbose --print-certs "$APK")
+          echo "$CERTS"
+          echo "$CERTS" | grep -q 'Number of signers: 1' || { echo "::error::APK must have exactly one signer"; exit 1; }
+          GOT=$(echo "$CERTS" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':' | tr 'A-Z' 'a-z')
+          BADGE=$("$BT/aapt2" dump badging "$APK" | head -1)
+          APPID=$(echo "$BADGE" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          VCODE=$(echo "$BADGE" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
           {
             echo "### Signing check for $(basename "$APK")"
             echo '```'
-            "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
-            echo "repo debug.keystore:"
-            keytool -list -keystore ~/.android/debug.keystore -storepass android 2>/dev/null | grep -i -E "androiddebugkey|fingerprint" || true
-            echo "versionCode: $(grep versionCode version.properties)"
+            echo "signer SHA-256 : $GOT"
+            echo "expected       : $EXPECTED_CERT_SHA256"
+            echo "applicationId  : $APPID"
+            echo "versionCode    : $VCODE"
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$GOT" = "$EXPECTED_CERT_SHA256" ] || { echo "::error::APK certificate differs from the permanent fingerprint"; exit 1; }
+          [ "$APPID" = "$EXPECTED_APP_ID" ] || { echo "::error::applicationId is $APPID, expected $EXPECTED_APP_ID"; exit 1; }
+          [ "$VCODE" = "${{ github.run_number }}" ] || { echo "::error::versionCode $VCODE != run number"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:
@@ -148,5 +188,6 @@ jobs:
             Effects/app/build/reports
             Effects/app/.cxx/**/*.txt
             Effects/app/.cxx/**/*.log
+
 
             

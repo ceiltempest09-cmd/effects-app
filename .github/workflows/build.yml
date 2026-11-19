@@ -56,6 +56,7 @@ jobs:
         working-directory: .
         run: |
           if [ -d overlay ]; then cp -r overlay/. .; fi
+          if [ -f overlay_ae.zip ]; then unzip -oqq overlay_ae.zip -d overlay_ae && cp -r overlay_ae/overlay/. . 2>/dev/null || cp -r overlay_ae/. .; fi
 
       - name: Unpack effect libraries (pack.zip, effects.zip, ae.zip, aligthmotion.zip, glsl.zip, emx.zip, whichever are in the repo)
         working-directory: .
@@ -68,6 +69,21 @@ jobs:
       - name: Add effects (effects/ and pack/ json = Performance, glsl/ = Balance, emx/ = Heavy effects, aligthmotion/ = Alight Motion)
         working-directory: .
         run: python3 tools/fxconvert.py
+
+      - name: Bundle the After Effects library (assets/ae)
+        working-directory: .
+        run: |
+          if [ -d ae ]; then
+            mkdir -p Effects/shared/assets/ae
+            cp ae/*.xml ae/*.json Effects/shared/assets/ae/ 2>/dev/null || true
+            python3 - <<'PY'
+          import os, json
+          d = 'Effects/shared/assets/ae'
+          fs = sorted(f for f in os.listdir(d) if f.endswith(('.xml', '.json')) and f != 'index.json')
+          json.dump(fs, open(d + '/index.json', 'w'))
+          print(len(fs), 'AE effects bundled')
+          PY
+          fi
 
       - name: Add thumbnails from the repo's thumbs folder
         working-directory: .

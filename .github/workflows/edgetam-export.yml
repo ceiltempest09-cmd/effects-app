@@ -1,0 +1,40 @@
+name: EdgeTAM export
+on:
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install timm hydra-core omegaconf iopath pillow numpy tqdm pnnx ncnn
+      - name: Get official EdgeTAM + checkpoint
+        run: |
+          git clone --depth 1 https://github.com/facebookresearch/EdgeTAM EdgeTAM
+          ls -l EdgeTAM/checkpoints
+          echo "ed2d4850b8792c239689b043c47046ec239b6e808a3d9b6ae676c803fd8780df  EdgeTAM/checkpoints/edgetam.pt" | sha256sum -c -
+      - name: Export
+        run: |
+          python tools/edgetam/export_ncnn.py --repo EdgeTAM --out out --cmake tools/edgetam/ncnn_layers.txt 2>&1 | tee export.log
+      - name: Summary
+        if: always()
+        run: |
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat out/report.txt >> $GITHUB_STEP_SUMMARY || tail -60 export.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: edgetam-ncnn
+          path: |
+            out/*.param
+            out/*.bin
+            out/report.txt
+            export.log

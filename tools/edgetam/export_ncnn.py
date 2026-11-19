@@ -79,10 +79,11 @@ class Decoder(torch.nn.Module):
         c = 2 * (pts / 1024.0) - 1
         c = 2 * 3.141592653589793 * (c @ self.gauss)
         emb = torch.cat([torch.sin(c), torch.cos(c)], dim=-1)  # 1,N+1,256
-        valid = (lab > -0.5).float()
+        # one-hot by arithmetic only (no gt/lt/to ops): hit(k) = relu(1 - |lab - k|)
+        valid = 1.0 - torch.relu(1.0 - (lab + 1.0).abs())
         emb = emb * valid + (1.0 - valid) * self.not_pt
         for k in range(4):
-            emb = emb + (lab - float(k)).abs().lt(0.5).float() * self.kind[k].reshape(1, 1, -1)
+            emb = emb + torch.relu(1.0 - (lab - float(k)).abs()) * self.kind[k].reshape(1, 1, -1)
         res = self.m.sam_mask_decoder(
             image_embeddings=image_embed, image_pe=self.dense_pe, sparse_prompt_embeddings=emb,
             dense_prompt_embeddings=self.no_mask, multimask_output=True, repeat_image=False,
@@ -164,10 +165,11 @@ try:
         for k, v in feeds.items():
             ex.input(k, ncnn.Mat(np.ascontiguousarray(v.squeeze(0).numpy() if v.dim() == 4 else v.numpy().reshape(v.shape[-2:]) if v.dim() == 3 else v.numpy().reshape(-1))).clone())
         res = []
-        for o in net.output_names():
+        names = sorted(net.output_names())
+        for o in names:
             r, m = ex.extract(o)
             res.append(np.array(m).reshape(-1))
-        return net.input_names(), net.output_names(), res
+        return net.input_names(), names, res
 
     ins, outs, res = run("edgetam_encoder", {"in0": img})
     lines.append("encoder ncnn inputs %s outputs %s" % (ins, outs))
@@ -183,3 +185,4 @@ except Exception as e:
 report = "\n".join(lines)
 print(report)
 open(os.path.join(out, "report.txt"), "w").write(report + "\n")
+                      

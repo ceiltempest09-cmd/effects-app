@@ -56,18 +56,36 @@ class Encoder(torch.nn.Module):
 
 
 class Decoder(torch.nn.Module):
-    """Points in 1024 space (boxes = 2 points, labels 2 and 3). Label -1 = unused slot."""
+    """Points in 1024 space (boxes = 2 points, labels 2 and 3). Label -1 = unused slot.
+
+    Point embedding is rewritten with plain arithmetic (no boolean-mask indexing) so it traces."""
 
     def __init__(self, m):
         super().__init__()
         self.m = m
+        pe = m.sam_prompt_encoder
+        self.register_buffer("dense_pe", pe.get_dense_pe().detach().clone())
+        self.register_buffer("gauss", pe.pe_layer.positional_encoding_gaussian_matrix.detach().clone())
+        w = torch.stack([pe.point_embeddings[i].weight.detach()[0] for i in range(4)])  # 4,256
+        self.register_buffer("kind", w)
+        self.register_buffer("not_pt", pe.not_a_point_embed.weight.detach().clone().reshape(1, 1, -1))
+        self.register_buffer("no_mask", pe.no_mask_embed.weight.detach().clone().reshape(1, -1, 1, 1))
 
     def forward(self, image_embed, high0, high1, point_coords, point_labels):
-        sparse, dense = self.m.sam_prompt_encoder(points=(point_coords, point_labels), boxes=None, masks=None)
-        pe = self.m.sam_prompt_encoder.get_dense_pe()
+        # same as PromptEncoder._embed_points with pad=True
+        pts = point_coords + 0.5
+        pts = torch.cat([pts, torch.zeros(1, 1, 2)], dim=1)
+        lab = torch.cat([point_labels, -torch.ones(1, 1)], dim=1).unsqueeze(-1)  # 1,N+1,1
+        c = 2 * (pts / 1024.0) - 1
+        c = 2 * 3.141592653589793 * (c @ self.gauss)
+        emb = torch.cat([torch.sin(c), torch.cos(c)], dim=-1)  # 1,N+1,256
+        valid = (lab > -0.5).float()
+        emb = emb * valid + (1.0 - valid) * self.not_pt
+        for k in range(4):
+            emb = emb + (lab - float(k)).abs().lt(0.5).float() * self.kind[k].reshape(1, 1, -1)
         res = self.m.sam_mask_decoder(
-            image_embeddings=image_embed, image_pe=pe, sparse_prompt_embeddings=sparse,
-            dense_prompt_embeddings=dense, multimask_output=True, repeat_image=False,
+            image_embeddings=image_embed, image_pe=self.dense_pe, sparse_prompt_embeddings=emb,
+            dense_prompt_embeddings=self.no_mask, multimask_output=True, repeat_image=False,
             high_res_features=[high0, high1])
         return res[0], res[1]  # masks (1,3,256,256), iou (1,3)
 
@@ -83,6 +101,11 @@ with torch.no_grad():
     pl[0, 0] = 1
     ref_masks, ref_iou = dec(e0, e1, e2, pc, pl)
     print("decoder out", tuple(ref_masks.shape), tuple(ref_iou.shape))
+    sp, dn = model.sam_prompt_encoder(points=(pc, pl), boxes=None, masks=None)
+    orig = model.sam_mask_decoder(image_embeddings=e0, image_pe=model.sam_prompt_encoder.get_dense_pe(),
+        sparse_prompt_embeddings=sp, dense_prompt_embeddings=dn, multimask_output=True, repeat_image=False,
+        high_res_features=[e1, e2])
+    print("rewrite vs original decoder max|diff|:", (orig[0] - ref_masks).abs().max().item())
 
 import pnnx
 

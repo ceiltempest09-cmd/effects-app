@@ -57,10 +57,10 @@ jobs:
         run: |
           if [ -d overlay ]; then cp -r overlay/. .; fi
 
-      - name: Unpack effect libraries (pack.zip, aligthmotion.zip, glsl.zip, emx.zip, whichever are in the repo)
+      - name: Unpack effect libraries (pack.zip, effects.zip, ae.zip, aligthmotion.zip, glsl.zip, emx.zip, whichever are in the repo)
         working-directory: .
         run: |
-          for z in pack.zip aligthmotion.zip glsl.zip emx.zip; do
+          for z in pack.zip effects.zip ae.zip aligthmotion.zip glsl.zip emx.zip; do
             if [ -f "$z" ]; then unzip -oqq "$z"; fi
           done
           pip install --quiet pillow

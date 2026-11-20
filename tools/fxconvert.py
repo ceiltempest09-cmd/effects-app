@@ -6,6 +6,12 @@
   aligthmotion/**/*.xml (+ thumb/)  -> Alight Motion library (xml files are bundled; the app converts them on first start)
 Run from the repo root. A bad file is skipped with a warning; the build goes on."""
 import glob, json, os, re, shlex, shutil, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import alight_translate as AT   # Alight Motion xml -> GLSL ES 3.00 / RGBA16F schema-2 json (tools/alight_translate.py, tools/alight_js.py)
+except Exception as _e:
+    AT = None
+    print('::warning::alight_translate not available: %s' % _e)
 from xml.sax.saxutils import unescape
 
 DST = 'Effects/shared/assets/effects'
@@ -440,18 +446,19 @@ def alight_motion(root):
             pictures.setdefault(stem.lower(), p)
             pictures.setdefault(norm(stem), p)
     os.makedirs(AM_DST, exist_ok=True)
+    for old in glob.glob(os.path.join(AM_DST, '*.xml')) + glob.glob(os.path.join(AM_DST, '*.json')):
+        os.remove(old)
+    lib = AT.make_library(root) if AT else {}
     slugs, index, counts, no_thumb, skipped = set(), [], {}, 0, 0
     for f in sorted(set(glob.glob(os.path.join(root, '**', '*.xml'), recursive=True))):
+        if os.path.basename(f).lower().startswith('gm'):
+            continue            # files whose name starts with "gm" are not part of the library
         try:
             text = open(f, encoding='utf-8', errors='replace').read()
             m = re.search(r'<effect\b[^>]*>', text)
             if not m:
                 raise Bad('no <effect> tag')
             tag = m.group(0)
-            if re.search(r'<texture\b[^>]*srcType="image"', text):
-                skipped += 1
-                warn('%s skipped: it needs an image texture, which the app does not load' % f)
-                continue
             name, eid = attr(tag, 'name'), attr(tag, 'id')
             slug = am_slug(eid, name)
             n = 2
@@ -465,11 +472,18 @@ def alight_motion(root):
             else:
                 tag2 = tag
             card = am_card(attr(tag, 'category'), name, attr(tag, 'tags'))
-            tag2 = set_attr(tag2, 'category', card)
             key = 'am_' + slug
+            if AT is None:
+                raise Bad('alight_translate.py is missing next to fxconvert.py')
+            js, why = AT.translate_file(lib, f, slug, card)
+            if js is None:
+                skipped += 1
+                slugs.discard(slug)
+                warn('%s not added: %s' % (f, why))
+                continue
             counts[card] = counts.get(card, 0) + 1
-            open(os.path.join(AM_DST, key + '.xml'), 'w', encoding='utf-8').write(text[:m.start()] + tag2 + text[m.end():])
-            index.append(key + '.xml')
+            json.dump(js, open(os.path.join(AM_DST, key + '.json'), 'w', encoding='utf-8'), indent=1)
+            index.append(key + '.json')
             thumb = attr(tag, 'thumb')
             pic = None
             if thumb:
@@ -484,7 +498,7 @@ def alight_motion(root):
         except Exception as e:
             warn('%s skipped: %s' % (f, e))
     json.dump(index, open(os.path.join(AM_DST, 'index.json'), 'w'), indent=1)
-    print('added (alight motion) %d files; %d skipped (image textures); %d without a picture' % (len(index), skipped, no_thumb))
+    print('added (alight motion) %d files; %d not translated; %d without a picture' % (len(index), skipped, no_thumb))
     for card, c in sorted(counts.items()):
         print('  %-11s %d' % (card, c))
 

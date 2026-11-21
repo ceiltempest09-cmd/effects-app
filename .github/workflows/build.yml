@@ -36,10 +36,10 @@ jobs:
         run: |
           if [ -f overlay.zip ]; then unzip -oqq overlay.zip; fi
 
-      - name: Set the app version from the run number
+      - name: Set the app version (5.0.291; versionCode = run number, above 214)
         working-directory: .
         run: |
-          printf 'versionName=1.0.%s\nversionCode=%s\n' "${{ github.run_number }}" "${{ github.run_number }}" > Effects/version.properties
+          printf 'versionName=5.0.291\nversionCode=%s\n' "${{ github.run_number }}" > Effects/version.properties
 
       - name: Overlay patched source files
         working-directory: .

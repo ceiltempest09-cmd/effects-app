@@ -41,17 +41,6 @@ jobs:
         run: |
           printf 'versionName=1.0.%s\nversionCode=%s\n' "${{ github.run_number }}" "${{ github.run_number }}" > Effects/version.properties
 
-      - name: Optimize native code in debug build
-        working-directory: .
-        run: |
-          python3 - <<'PY'
-          p = 'Effects/app/build.gradle.kts'
-          s = open(p).read()
-          s = s.replace("    buildTypes {\n", "    buildTypes {\n        debug {\n            externalNativeBuild { cmake { arguments += \"-DCMAKE_BUILD_TYPE=Release\" } }\n        }\n", 1)
-          open(p, 'w').write(s)
-          PY
-          grep -q CMAKE_BUILD_TYPE Effects/app/build.gradle.kts
-
       - name: Overlay patched source files
         working-directory: .
         run: |
@@ -162,14 +151,15 @@ jobs:
             echo "EFFECTS_KEY_PASSWORD=${KEY_PASS:-$KS_PASS}"
           } >> "$GITHUB_ENV"
 
-      - name: Build the APK
+      - name: Build the FOSS release APK (R8 enabled by release build type)
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
+          ./gradlew :app:assembleFossRelease --no-daemon --stacktrace
 
-      - name: Verify the APK (certificate, app id, version). Fails the build on any mismatch
+      - name: Verify the release APK (certificate, app id, version). Fails the build on any mismatch
         run: |
-          APK=$(ls app/build/outputs/apk/foss/debug/*.apk | head -1)
+          APK=$(find app/build/outputs/apk/foss/release -maxdepth 1 -name '*.apk' -print -quit)
+          [ -n "$APK" ] || { echo "::error::FOSS release APK was not produced"; exit 1; }
           BT="$ANDROID_HOME/build-tools/37.0.0"
           CERTS=$("$BT/apksigner" verify --verbose --print-certs "$APK")
           echo "$CERTS"
@@ -191,10 +181,13 @@ jobs:
           [ "$APPID" = "$EXPECTED_APP_ID" ] || { echo "::error::applicationId is $APPID, expected $EXPECTED_APP_ID"; exit 1; }
           [ "$VCODE" = "${{ github.run_number }}" ] || { echo "::error::versionCode $VCODE != run number"; exit 1; }
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload FOSS release APK and R8 mapping
+        uses: actions/upload-artifact@v4
         with:
-          name: Effects-debug-apk
-          path: Effects/app/build/outputs/apk/foss/debug/*.apk
+          name: Effects-foss-release-apk
+          path: |
+            Effects/app/build/outputs/apk/foss/release/*.apk
+            Effects/app/build/outputs/mapping/fossRelease/mapping.txt
 
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -55,9 +55,9 @@ jobs:
           done
           pip install --quiet pillow
 
-      - name: Remove the built-in engine effects (the app's effect list is the XML library below)
+      - name: Remove the built-in engine effects (keeps foreign.json: the project loader reads it)
         working-directory: .
-        run: find Effects/shared/assets/effects -maxdepth 1 -name '*.json' -delete
+        run: find Effects/shared/assets/effects -maxdepth 1 -name '*.json' ! -name foreign.json -delete
 
       - name: Build the XML effect library (aligthmotion/*.xml -> assets/alightmotion, one entry per effect, presets, thumbnails)
         working-directory: .

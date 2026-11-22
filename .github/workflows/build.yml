@@ -55,9 +55,9 @@ jobs:
           done
           pip install --quiet pillow
 
-      - name: Add effects (effects/ and pack/ json = Performance, glsl/ = Balance, emx/ = Heavy effects, aligthmotion/ = Alight Motion)
+      - name: Remove the built-in engine effects (the app's effect list is the XML library below)
         working-directory: .
-        run: python3 tools/fxconvert.py
+        run: find Effects/shared/assets/effects -maxdepth 1 -name '*.json' -delete
 
       - name: Build the XML effect library (aligthmotion/*.xml -> assets/alightmotion, one entry per effect, presets, thumbnails)
         working-directory: .

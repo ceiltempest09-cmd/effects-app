@@ -59,9 +59,9 @@ jobs:
         working-directory: .
         run: python3 tools/fxconvert.py
 
-      - name: Install the Alight Motion library (aligthmotion/*.json -> assets/alightmotion, pictures -> assets/effects/thumb)
+      - name: Build the XML effect library (aligthmotion/*.xml -> assets/alightmotion, one entry per effect, presets, thumbnails)
         working-directory: .
-        run: python3 tools/am_install.py
+        run: python3 tools/am_build.py aligthmotion Effects/shared/assets/alightmotion
 
       - name: Bundle the After Effects library (assets/ae)
         working-directory: .

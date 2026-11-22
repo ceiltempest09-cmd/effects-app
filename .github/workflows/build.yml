@@ -55,7 +55,7 @@ jobs:
           done
           pip install --quiet pillow
 
-      - name: Remove the built-in engine effects (keeps foreign.json: the project loader reads it)
+      - name: Remove the built-in engine effects (keeps foreign.json, the project loader reads it)
         working-directory: .
         run: find Effects/shared/assets/effects -maxdepth 1 -name '*.json' ! -name foreign.json -delete
 
